@@ -37,8 +37,8 @@ program treb
 
   end do
 
-  write(*,*) 'part 1:', acc1
-  write(*,*) 'part 2:', acc2
+  write(*,*) 'Part 1:', acc1
+  write(*,*) 'Part 2:', acc2
 
 contains
 
