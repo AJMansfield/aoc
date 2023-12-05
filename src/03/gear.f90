@@ -107,7 +107,7 @@ contains
   function gear_total(i,j)
     integer, intent(in) :: i, j
     integer :: gear_total
-    integer :: count, a, b, n, dj
+    integer :: count, dj
 
     gear_total = 0    
     count = 0
