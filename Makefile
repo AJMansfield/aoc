@@ -15,8 +15,7 @@ FFLAGS := -std=gnu
 RM := rm -f
 
 # List of all source files
-SRCS := src/01/treb.f90 \
-		src/02/cubes.f90
+SRCS := $(sort $(wildcard src/*/*.f90))
 
 # Executable
 EXES := $(patsubst %.f90, %.exe, $(SRCS))
