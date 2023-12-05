@@ -33,7 +33,7 @@ $(EXES): %.exe: %.f90
 
 # Run on tests
 $(RUNS): %: %.exe
-	$(foreach input, $(wildcard $(dir $@)input*.txt), $< < $(input) ${\n})
+	$(foreach input, $(wildcard $(dir $@)input*.txt), $< < $(input) | diff -w -N - $(subst input,output,$(input)) || true ${\n})
 
 run: $(RUNS)
 
