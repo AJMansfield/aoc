@@ -1,27 +1,41 @@
 # Disable the default rules
 MAKEFLAGS += --no-builtin-rules --no-builtin-variables
 
+define \n
+
+
+endef
+
 # Project name
 NAME := aoc
 
 # Configuration settings
-FC := gfortran -std=gnu
+FC := gfortran
+FFLAGS := -std=gnu
 RM := rm -f
 
 # List of all source files
 SRCS := src/01/treb.f90 \
 		src/02/cubes.f90
 
-# Create lists of the build artefacts in this project
+# Executable
 EXES := $(patsubst %.f90, %.exe, $(SRCS))
 
-# Declare all public targets
-.PHONY: all clean
+# Targets for actually doing the test runs
+RUNS := $(patsubst %.f90, %, $(SRCS))
+
+.PHONY: all clean run $(RUNS)
 all: $(EXES)
 
-# Create object files from Fortran source
+# Compile fortran files into executable
 $(EXES): %.exe: %.f90
-	$(FC) -o $@ $<
+	$(FC) $(FFLAGS) -o $@ $<
+
+# Run on tests
+$(RUNS): %: %.exe
+	$(foreach input, $(wildcard $(dir $@)input*.txt), $< < $(input) ${\n})
+
+run: $(RUNS)
 
 
 # Cleanup, filter to avoid removing source code by accident
