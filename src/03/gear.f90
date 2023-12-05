@@ -7,11 +7,11 @@ program gear
   integer :: w, h, i, j, k
   character, dimension(:,:), pointer :: array
 
-  logical, dimension(:,:), allocatable :: is_digit, is_special, is_target
+  logical, dimension(:,:), allocatable :: is_digit, is_special, is_target, is_gear
   integer :: num
   logical :: targeting
   integer, dimension(:), allocatable :: sums
-
+  integer, dimension(:,:), allocatable :: gear_totals
 
   read(*,'(A)', iostat=ios) buf
   h = 1
@@ -28,16 +28,21 @@ program gear
   allocate(is_digit(0:w+1,0:h+1))
   allocate(is_special(0:w+1,0:h+1))
   allocate(is_target(0:w+1,0:h+1))
-  allocate(sums(0:h+1))
+  allocate(is_gear(0:w+1,0:h+1))
+  allocate(sums(h))
+  allocate(gear_totals(w,h))
   is_digit(:,:) = .false.
   is_special(:,:) = .false.
   is_target(:,:) = .false.
+  is_gear(:,:) = .false.
   sums(:) = 0
+  gear_totals(:,:) = 0
 
   do concurrent (j = 1:h)
     do concurrent (i = 1:w)
       if (verify(array(i,j), "0123456789") == 0) is_digit(i,j) = .true.
       if (.not. is_digit(i,j) .and. array(i,j) /= ".") is_special(i,j) = .true.
+      if (array(i,j) == "*") is_gear(i,j) = .true.
     end do
   end do
 
@@ -80,7 +85,6 @@ program gear
 
       if (targeting .and. .not. is_digit(i-1,j)) then
         read(buf((j-1)*w+i:(j-1)*w+k), *) num
-        ! write(*,*) "found digits",  i, j, k, buf((j-1)*w+i:(j-1)*w+k)
         sums(j) = sums(j) + num
         targeting = .false.
       end if
@@ -89,5 +93,79 @@ program gear
   end do
 
   write(*,*) "Part 1:", sum(sums)
+
+  do j = 1, h
+    do i = 1, w
+      gear_totals(i,j) = gear_total(i,j)
+    end do
+  end do
+
+  
+  write(*,*) "Part 2:", sum(gear_totals)
+
+contains
+  function gear_total(i,j)
+    integer, intent(in) :: i, j
+    integer :: gear_total
+    integer :: count, a, b, n, dj
+
+    gear_total = 0    
+    count = 0
+
+    if (.not. is_gear(i,j)) then
+      return
+    end if
+
+    gear_total = 1
+
+    if (is_digit(i-1,j)) then 
+      count = count + 1
+      gear_total = gear_total * parse_at(i-1,j)
+    end if
+
+    if (is_digit(i+1,j)) then 
+      count = count + 1
+      gear_total = gear_total * parse_at(i+1,j)
+    end if
+
+    do dj = -1, 1, 2
+      if (is_digit(i-1,j+dj)) then
+        count = count + 1
+        gear_total = gear_total * parse_at(i-1,j+dj)
+
+        if (is_digit(i+1, j+dj) .and. .not. is_digit(i, j+dj) ) then
+          count = count + 1
+          gear_total = gear_total * parse_at(i+1,j+dj)
+        end if
+      
+      else if (is_digit(i,j+dj)) then
+        count = count + 1
+        gear_total = gear_total * parse_at(i,j+dj)
+      else if (is_digit(i+1,j+dj)) then
+        count = count + 1
+        gear_total = gear_total * parse_at(i+1,j+dj)
+      end if
+    end do
+
+    if (count /= 2) gear_total = 0
+
+    return
+  end function
+
+  function parse_at(i,j)
+    integer, intent(in) :: i, j
+    integer :: parse_at
+    integer :: a, b, c, d
+    a = (j-1)*w+1
+    b = (j)*w
+    c = (j-1)*w+i
+
+    a = a + verify(buf(a:c), "0123456789", .true.)
+
+    d = verify(buf(c:b), "0123456789", .false.)
+    if(d /= 0) b = c + d - 2
+
+    read(buf(a:b), *) parse_at
+  end function
   
 end program gear
