@@ -1,48 +1,50 @@
 program treb
   implicit none
 
-  integer :: ios
-  character(len=300) :: line
+  block
+    integer :: ios
+    character(len=300) :: line
 
-  integer :: pos, val, linetotal, acc1, acc2
-  acc1 = 0
-  acc2 = 0
+    integer :: pos, val, linetotal, acc1, acc2
+    acc1 = 0
+    acc2 = 0
 
-  do
-    read(*, '(A)', iostat=ios) line
-    if ( ios /= 0 ) exit
-    
-    
-    ! Part 1:
+    do
+      read(*, '(A)', iostat=ios) line
+      if ( ios /= 0 ) exit
+      
+      
+      ! Part 1:
 
-    pos = scan(line, '0123456789')
-    read (line (pos:pos), *) val
-    linetotal = 10*val
+      pos = scan(line, '0123456789')
+      read (line (pos:pos), *) val
+      linetotal = 10*val
 
-    pos = scan(line, '0123456789', back=.true.)
-    read (line (pos:pos), *) val
-    linetotal = linetotal + val
+      pos = scan(line, '0123456789', back=.true.)
+      read (line (pos:pos), *) val
+      linetotal = linetotal + val
 
-    acc1 = acc1 + linetotal
+      acc1 = acc1 + linetotal
 
-    ! write(*,*), 'part 1 line: ', linetotal
+      ! write(*,*), 'part 1 line: ', linetotal
 
 
-    ! Part 2:
+      ! Part 2:
 
-    linetotal = 10*scan_for_spelled_digit(line, back=.false.) + scan_for_spelled_digit(line, back=.true.)
-    acc2 = acc2 + linetotal
+      linetotal = 10*scan_for_spelled_digit(line, back=.false.) + scan_for_spelled_digit(line, back=.true.)
+      acc2 = acc2 + linetotal
 
-    ! write(*,*) 'part 2 line: ', linetotal
+      ! write(*,*) 'part 2 line: ', linetotal
 
-  end do
+    end do
 
-  write(*,*) 'Part 1:', acc1
-  write(*,*) 'Part 2:', acc2
+    write(*,*) 'Part 1:', acc1
+    write(*,*) 'Part 2:', acc2
 
+  end block
 contains
 
-  function scan_for_spelled_digit(line, back) result(num)
+  pure function scan_for_spelled_digit(line, back) result(num)
     implicit none
     character(len=*), intent(in) :: line
     logical, intent(in), optional :: back
