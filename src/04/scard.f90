@@ -13,6 +13,8 @@ program scard
   
   allocate(cards_won(min(size(winning), size(drawn))))
 
+  total_points = 0
+  total_cards = 0
   cards_won(:) = 1
 
   do while (ios == 0)
