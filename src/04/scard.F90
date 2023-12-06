@@ -2,7 +2,6 @@ program scard
   implicit none
 
   integer :: ios
-
   integer :: card
   integer(kind=1), dimension(:), allocatable :: winning, drawn
   character(len=32) :: ifmt, ofmt
@@ -62,9 +61,6 @@ contains
     allocate(drawn(ddim))
 
     read(firstline, ifmt, iostat=ios) card, winning, drawn
-
   end subroutine set_up_formats
 
-  
-  
 end program scard
