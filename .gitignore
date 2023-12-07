@@ -3,3 +3,4 @@ lib*.a
 *.exe
 *.mod
 input.txt
+output.txt
