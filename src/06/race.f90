@@ -27,10 +27,8 @@ program race
   read(buf,*,iostat=ios) dist
   read(buf,'(I128)') dist(n+1)
 
-  write(0,'(  *( "(" I15 "               " ")" : " " )  )') time(:n+1)
-  ! write(0,'(  *( "(" I15 ")" : " " )  )') isqrt(time(:n+1))
-  ! write(0,*) isqrt(time(:n+1))
-  write(0,'(  *( "(" "               " I15 ")" : " " )  )') dist(:n+1)
+  ! write(0,'(  *( "(" I15 "               " ")" : " " )  )') time(:n+1)
+  ! write(0,'(  *( "(" "               " I15 ")" : " " )  )') dist(:n+1)
 
   roots = qroots(real(-time,kind=8), real(dist,kind=8))
   width(:) = ceiling(roots(2,:)) - floor(roots(1,:)) - 1
@@ -56,6 +54,7 @@ contains
 
   end function
 
+  ! TODO solve this problem entirely in the integer domain without any reals
   function isqrt(x)
     implicit none
     integer(kind=8), dimension(:), intent(in) :: x
