@@ -84,18 +84,5 @@ contains
     num = best_dig
 
   end function scan_for_spelled_digit
-!     implicit none
-!     character(len=*), intent(in) :: line
-
-!     integer :: tens, ones, num
-!     integer :: i, ios
-
-!     do i = 1, len(line)
-!       read
-
-
-!     end do
-
-!   end function line_cal_value
-
+  
 end program treb
