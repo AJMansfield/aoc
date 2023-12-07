@@ -50,9 +50,15 @@ program camel
 
   do i = 1, l
     bid = unpack_bid(packs(i))
+    hand = unpack_hand(packs(i))
+
+    ! write(0,'(Z11.11 " " 5A1 " " I0)') packs(i), hand, bid
+    ! write(0,'("win: " I4 " * " I4 " -> " I9 " (" Z11.11 ")" )') bid, i, total_winnings, packs(i)
     
     total_winnings = total_winnings + bid * i
-    ! write(0,'("win: " I4 " * " I4 " -> " I9 " (" Z11.11 ")" )') bid, i, total_winnings, packs(i)
+
+    write(0,'(5A1 " " I4 " * " I4 " -> " I9)') hand, bid, i, total_winnings
+    
   end do
 
 
@@ -95,7 +101,6 @@ contains
       ! rank_rate = ior(lshift(rank_rate, 4), rank)
     end do
 
-    ! type_rate = rshift(type_rate, 4*3) ! we don't actually care about the bottom three type entries
     hand_rating = ior(lshift(int(type_rate,kind=8), 4*5), iand(int(rank_rate,kind=8), maskr(4*5,kind=8)))
   end function
 
@@ -119,6 +124,17 @@ contains
     integer(kind=8) unpack_rate
 
     unpack_rate = rshift(packed_rate_and_bid,16)
+  end function
+
+  pure function unpack_hand(packed_rate_and_bid)
+    integer(kind=8), intent(in) :: packed_rate_and_bid
+    character(len=1), dimension(n) :: unpack_hand
+    integer :: i, j
+
+    do i = 1, n
+      j = iand(int(rshift(packed_rate_and_bid, 16 + 4*(n-i))), maskr(4))
+      unpack_hand(i) = rank_chars(j:j)
+    end do
   end function
 
   subroutine sort(a)
