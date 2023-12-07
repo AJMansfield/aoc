@@ -1,0 +1,2 @@
+AAATK 1
+TTTAA 100
