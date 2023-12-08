@@ -44,7 +44,7 @@ program network
     end if
   end do
 
-  write(0, '("ghosts: " *(A3 : " "))') ghosts(:n_ghosts)
+  ! write(0, '("ghosts: " *(A3 : " "))') ghosts(:n_ghosts)
 
   call trace_ghost_path(ghosts(:n_ghosts), map(:,:n_map), dirs(:n_dirs), n_ghost_steps)
 
@@ -101,6 +101,7 @@ contains
     integer(kind=8), dimension(size(trace_begin)) :: last_end, period
     integer(kind=8) :: real_end, real_period
 
+
     last_end = -1
     period = -1
 
@@ -134,26 +135,30 @@ contains
       end do
     end do each_cycle
 
-    write(0,'(*(A20 : " "))') node
-    write(0,'(*(I20 : " "))') period
-    write(0,'(*(G20.5 : " "))') real(period) / real(n_dirs)
-    write(0,'(*(I20 : " "))') last_end
+    ! write(0,'(*(A20 : " "))') node
+    ! write(0,'(*(I20 : " "))') period
+    ! write(0,'(*(G20.5 : " "))') real(period) / real(n_dirs)
+    ! write(0,'(*(I20 : " "))') last_end
 
     ! no following the graph, we can just calculate how long until coincidence with just numbers
 
-    do i = 2, size(node), 2
-      call add_period(last_end(i-1), period(i-1), last_end(i), period(i))
-      write(0,'(*(I20 : " "))') last_end(i-1), period(i-1)
-    end do
+    block ! combine by folding in half, since combining a big thing and a small thing is slow
+      integer :: i, j
 
-    real_end = last_end(1)
-    real_period = period(1)
-    do i = 3, size(node), 2
-      call add_period(real_end, real_period, last_end(i), period(i))
-      write(0,'(*(I20 : " "))') real_end, real_period
-    end do
+      j = size(node)
+      do
+        if(mod(j,2) == 1) then
+          call add_period(last_end(1), period(1), last_end(j), period(j))
+        end if
+        j = j/2
+        do i = 1, j
+          call add_period(last_end(i), period(i), last_end(i+j), period(i+j))
+        end do
+        if (j <= 1) exit
+      end do
 
-    trace_steps = real_end
+      trace_steps = last_end(1)
+    end block
 
   end subroutine trace_ghost_path
 
@@ -169,7 +174,7 @@ contains
     do ! find the next coincidence between the pair
       if (offset < off2) then
         offset = offset + period
-      else if (offset > off2) then
+      else if (off2 < offset) then
         off2 = off2 + addl_period
       else
         exit
