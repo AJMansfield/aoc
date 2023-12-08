@@ -3,75 +3,70 @@ program camel
 
   integer :: ios
 
-  character(len=*), parameter :: rank_chars = " 23456789TJQKA"
+  character(len=*), parameter :: norm_rank_chars = "23456789TJQKA"
+  character(len=*), parameter :: wild_rank_chars = "J23456789TQKA"
   integer, parameter :: n = 5
   integer, parameter :: max_l = 1000
   integer :: i, l
+
+  integer, parameter :: bid_bits = 16
+  integer, parameter :: card_bits = 4
+  integer, parameter :: type_bits = 4
+
 
   character(len=1), dimension(n) :: hand
   integer :: bid
 
   integer(kind=8) :: rate, pack
-  integer(kind=8), dimension(max_l) :: packs
-  integer total_winnings
+  integer(kind=8), dimension(max_l,2) :: packs
+  integer total_winnings, wild_winnings
 
   do i = 1, max_l
-    read(*, '(5A1 X I3)', iostat=ios) hand, bid
+    read(*, '(5A1 X I4)', iostat=ios) hand, bid
     if (ios /= 0) exit
 
-    rate = hand_rating(hand)
+    rate = hand_rating(hand, norm_rank_chars, .false.)
     pack = pack_rate_bid(rate, bid)
 
-    ! write(0,'(I3 " " Z24.24 " " I30))') bid, pack, pack
+    packs(i,1) = pack
 
-    ! if (bid /= unpack_bid(pack)) then
-    !   write(0,'(I3 " " Z15.14 " " I30)') bid, pack, pack
-    ! end if
+    rate = hand_rating(hand, wild_rank_chars, .true.)
+    pack = pack_rate_bid(rate, bid)
 
-    packs(i) = pack
+    packs(i,2) = pack
   end do
   l = i - 1 ! length of the array
 
-  ! write(0,'(I0)') l
 
-
-  call sort(packs(:l))
+  call sort(packs(:l,1))
+  call sort(packs(:l,2))
 
   total_winnings = 0
-  
-  do i = 1, l-1
-    bid = unpack_bid(packs(i))
-    rate = unpack_rate(packs(i))
-
-    if (rate == unpack_rate(packs(i+1))) then
-      ! write(0,'("duplicated hands: " Z7.7 " = " Z7.7)') rate, unpack_rate(packs(i+1))
-    end if
-  end do
+  wild_winnings = 0
 
   do i = 1, l
-    bid = unpack_bid(packs(i))
-    hand = unpack_hand(packs(i))
+    bid = unpack_bid(packs(i,1))
+    hand = unpack_hand(packs(i,1), norm_rank_chars)
 
-    ! write(0,'(Z11.11 " " 5A1 " " I0)') packs(i), hand, bid
-    ! write(0,'("win: " I4 " * " I4 " -> " I9 " (" Z11.11 ")" )') bid, i, total_winnings, packs(i)
-    
     total_winnings = total_winnings + bid * i
 
-    write(0,'(5A1 " " I4 " * " I4 " -> " I9)') hand, bid, i, total_winnings
-    
+    ! write(0,'(5A1 " " I4 " * " I4 " -> " I9)') hand, bid, i, total_winnings
+
+    bid = unpack_bid(packs(i,2))
+    hand = unpack_hand(packs(i,2), wild_rank_chars)
+
+    wild_winnings = wild_winnings + bid * i
+
   end do
 
-
-  ! write(0,'(4Z15.14)') packs(:l)
-
   write(*,'("Part 1: " I0)') total_winnings
-
-  ! do i = lbound(1, max_l
-
+  write(*,'("Part 2: " I0)') wild_winnings
 
 contains
-  pure function hand_rating(hand_chars)
+  pure function hand_rating(hand_chars, rank_chars, j_is_wild )
     character(len=1), dimension(n), intent(in) :: hand_chars
+    character(len=*), intent(in) :: rank_chars
+    logical, intent(in) :: j_is_wild
     integer(kind=8) :: hand_rating
     
     integer, dimension(n) :: hand_ranks
@@ -83,9 +78,16 @@ contains
     rank_counts = 0
     rank_counts(hand_ranks) = rank_counts(hand_ranks) + 1
 
+    if (j_is_wild) then
+      rank = maxloc(rank_counts(2:), dim=1, back=.true.) + 1
+      count = rank_counts(1) ! done in this order to avoid "if (rank /= 1)"
+      rank_counts(rank) = rank_counts(rank) + count
+      rank_counts(1) = rank_counts(1) - count
+    end if
+
     rank_rate = 0
     do i = 1,5
-      rank_rate = ior(lshift(rank_rate, 4), hand_ranks(i))
+      rank_rate = ior(lshift(rank_rate, card_bits), hand_ranks(i))
     end do
 
     type_rate = 0
@@ -94,14 +96,10 @@ contains
       count = rank_counts(rank)
       if (count == 0) rank = 0
       rank_counts(rank) = 0
-      ! two bits per count(lead could technically have a third bit)
-      type_rate = ior(lshift(type_rate, 4), count)
-
-      ! ! four bits per hand card
-      ! rank_rate = ior(lshift(rank_rate, 4), rank)
+      type_rate = ior(lshift(type_rate, type_bits), count)
     end do
 
-    hand_rating = ior(lshift(int(type_rate,kind=8), 4*5), iand(int(rank_rate,kind=8), maskr(4*5,kind=8)))
+    hand_rating = ior(lshift(int(type_rate,kind=8), card_bits*n), iand(int(rank_rate,kind=8), maskr(card_bits*n,kind=8)))
   end function
 
   pure function pack_rate_bid(hand_rate, hand_bid)
@@ -109,30 +107,31 @@ contains
     integer, intent(in) :: hand_bid
     integer(kind=8) :: pack_rate_bid
 
-    pack_rate_bid = ior(lshift(hand_rate, 16), iand(int(hand_bid, kind=8), maskr(16, kind=8)))
+    pack_rate_bid = ior(lshift(hand_rate, bid_bits), iand(int(hand_bid, kind=8), maskr(bid_bits, kind=8)))
   end function
 
   pure function unpack_bid(packed_rate_and_bid)
     integer(kind=8), intent(in) :: packed_rate_and_bid
     integer unpack_bid
 
-    unpack_bid = int(iand(packed_rate_and_bid, maskr(16, kind=8)))
+    unpack_bid = int(iand(packed_rate_and_bid, maskr(bid_bits, kind=8)))
   end function
 
   pure function unpack_rate(packed_rate_and_bid)
     integer(kind=8), intent(in) :: packed_rate_and_bid
     integer(kind=8) unpack_rate
 
-    unpack_rate = rshift(packed_rate_and_bid,16)
+    unpack_rate = rshift(packed_rate_and_bid,bid_bits)
   end function
 
-  pure function unpack_hand(packed_rate_and_bid)
+  pure function unpack_hand(packed_rate_and_bid, rank_chars)
     integer(kind=8), intent(in) :: packed_rate_and_bid
+    character(len=*), intent(in) :: rank_chars
     character(len=1), dimension(n) :: unpack_hand
     integer :: i, j
 
     do i = 1, n
-      j = iand(int(rshift(packed_rate_and_bid, 16 + 4*(n-i))), maskr(4))
+      j = iand(int(rshift(packed_rate_and_bid, bid_bits + card_bits*(n-i))), maskr(card_bits))
       unpack_hand(i) = rank_chars(j:j)
     end do
   end function
