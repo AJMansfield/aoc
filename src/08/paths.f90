@@ -99,13 +99,11 @@ contains
 
     integer(kind=8) :: steps
     integer(kind=8), dimension(size(trace_begin)) :: last_end, period
-    integer(kind=8) :: real_end, real_period
-
 
     last_end = -1
     period = -1
 
-    trace_steps = -1
+    trace_steps = -1 ! separate trace_steps to allow outputting error states
     steps = 0
 
     node = trace_begin
@@ -131,30 +129,24 @@ contains
         where(last_end /= -1 .and. is_end) period = steps - last_end
         where(is_end) last_end = steps
 
-        if (all(period /= -1)) exit each_cycle ! not so lucky, but we can calculate the full period using lcm functions LCM
+        if (all(period /= -1)) exit each_cycle ! we have periodicities for all of them, now combine using math
       end do
     end do each_cycle
 
-    ! write(0,'(*(A20 : " "))') node
-    ! write(0,'(*(I20 : " "))') period
-    ! write(0,'(*(G20.5 : " "))') real(period) / real(n_dirs)
-    ! write(0,'(*(I20 : " "))') last_end
-
-    ! no following the graph, we can just calculate how long until coincidence with just numbers
 
     block ! combine by folding in half, since combining a big thing and a small thing is slow
       integer :: i, j
 
       j = size(node)
       do
+        if (j <= 1) exit
         if(mod(j,2) == 1) then
           call add_period(last_end(1), period(1), last_end(j), period(j))
         end if
         j = j/2
-        do i = 1, j
+        do concurrent (i = 1:j)
           call add_period(last_end(i), period(i), last_end(i+j), period(i+j))
         end do
-        if (j <= 1) exit
       end do
 
       trace_steps = last_end(1)
@@ -162,7 +154,7 @@ contains
 
   end subroutine trace_ghost_path
 
-  subroutine add_period(offset, period, addl_offset, addl_period)
+  pure subroutine add_period(offset, period, addl_offset, addl_period)
     integer(kind=8), intent(inout) :: offset, period
     integer(kind=8), intent(in) :: addl_offset, addl_period
 
@@ -191,7 +183,8 @@ contains
       end if
     end do
 
-    period = period * addl_period / gcd1
+    ! use the GCD to find the LCM
+    period = period * addl_period / gcd1 
 
   end subroutine
 
