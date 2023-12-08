@@ -1,4 +1,4 @@
-program network
+program paths
   implicit none
 
   integer :: ios
@@ -204,4 +204,4 @@ contains
   end function ends_with
 
   ! pure function gcd()
-end program network
+end program paths
