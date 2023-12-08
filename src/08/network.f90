@@ -5,21 +5,23 @@ program network
 
   integer, parameter :: n_char = 3
   character(len=*), parameter :: record_format = '(*(A3 XXXX A3 XX A3 X/))'
-  integer, parameter :: record_size = (len(' = (, )') + 3*n_char)
-
   character(len=n_char), parameter :: node_begin = 'AAA', node_end = 'ZZZ'
-  character(len=n_char) :: node, next_node
+  integer, parameter :: record_size = (len(' = (, )') + 3*n_char)
+  integer, parameter :: max_n_dirs = 512
+  integer, parameter :: max_n_map = 1024
+  integer, parameter :: max_n_cycles = 999
+
+  character(len=n_char) :: node
   integer :: n_steps, n_cycles
 
   integer :: n_dirs
-  character(len=1), dimension(64) :: dir_chars
-  integer, dimension(64) :: dirs
+  character(len=1), dimension(max_n_dirs) :: dir_chars
+  integer, dimension(max_n_dirs) :: dirs
 
   integer :: n_map
-  character(len=n_char), dimension(3,16) :: map
+  character(len=n_char), dimension(3,max_n_map) :: map
 
-  integer :: i, j, limit
-  limit = 9
+  integer :: i, j
 
   read(*, '(*(A1))', size=n_dirs, eor=1, advance='no') dir_chars
 1 dirs = merge(2, 3, dir_chars == 'L') ! direction index in map table
@@ -34,18 +36,12 @@ program network
   n_cycles = 0
   each_cycle: do n_cycles = 0, 999
     do i = 1,n_dirs
-      j = findloc(map(:,1), node, dim=1)
-      next_node = map(dirs(i), j)
-      
-      ! write(0, '(A3 " " A1 " " A3)') node, dir_chars(i:i), next_node
-      node = next_node
+      j = findloc(map(1,:n_map), node, dim=1)
+      node = map(dirs(i), j)
       if (node == node_end) then
         n_steps = (n_cycles * n_dirs) + i
         exit each_cycle
       end if
-
-      limit = limit - 1
-      if (limit <= 0) call exit(1)
     end do
   end do each_cycle
 
