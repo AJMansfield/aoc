@@ -69,8 +69,8 @@ contains
     logical, intent(out) :: closed
 
     integer, dimension(2) :: p
-    integer d
-    
+    integer :: d
+
     p = in_pos
     d = in_dir
     area = 0
