@@ -39,16 +39,11 @@ contains
   pure recursive function extrapolate(array) result(output)
     integer, dimension(:), intent(in) :: array
     integer :: output
-
     integer, dimension(size(array)-1) :: delta
     
     output = array(size(array))
     delta = array(2:) - array(:size(array)-1)
-    if (.not. all(delta == 0)) then
-      output = output + extrapolate(delta)
-    end if
-
-    ! write(0, '(I5 ": " *(I5 :", "))') output, delta
+    if (.not. all(delta == 0)) output = output + extrapolate(delta)
   end function
 
 end program mirage
