@@ -4,16 +4,19 @@ program mirage
   integer ios
   integer, dimension(100) :: arr
   integer :: n
-  integer :: result
+  integer :: result, reverse_result
 
   result = 0
+  reverse_result = 0
   do
     call read_row(arr, n, ios)
     if (ios /= 0) exit
     result = result + extrapolate(arr(:n))
+    reverse_result = reverse_result + extrapolate(arr(n:1:-1))
   end do
 
   write(*, '("Part 1: " I0)') result
+  write(*, '("Part 2: " I0)') reverse_result
 
 contains
   subroutine read_row(array, count, iostat)
@@ -45,7 +48,7 @@ contains
       output = output + extrapolate(delta)
     end if
 
-    ! write(0, '(I3 ": " *(I3 :", "))') output, delta
+    ! write(0, '(I5 ": " *(I5 :", "))') output, delta
   end function
 
 end program mirage
