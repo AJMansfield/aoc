@@ -10,9 +10,9 @@ program pipes
 
   integer, dimension(2) :: pos
   integer, dimension(140,140,2) :: steps
-  logical :: success
+  logical :: sn,ss,se,sw
 
-  integer :: res1
+  integer :: res1, res2
 
   block
     integer :: ios
@@ -34,24 +34,68 @@ program pipes
   steps = huge(steps)
   steps(pos(1),pos(2),1) = 0
 
-  call walk_pipe(pos, pos+N, steps(:,:,2), success)
-  if (success) steps(:,:,1) = minval(steps, 3)
+  call walk_pipe(pos, pos+N, steps(:,:,2), sn)
+  if (sn) steps(:,:,1) = minval(steps, 3)
 
-  call walk_pipe(pos, pos+E, steps(:,:,2), success)
-  if (success) steps(:,:,1) = minval(steps, 3)
+  call walk_pipe(pos, pos+E, steps(:,:,2), se)
+  if (se) steps(:,:,1) = minval(steps, 3)
 
-  call walk_pipe(pos, pos+S, steps(:,:,2), success)
-  if (success) steps(:,:,1) = minval(steps, 3)
+  call walk_pipe(pos, pos+S, steps(:,:,2), ss)
+  if (ss) steps(:,:,1) = minval(steps, 3)
 
-  call walk_pipe(pos, pos+W, steps(:,:,2), success)
-  if (success) steps(:,:,1) = minval(steps, 3)
+  call walk_pipe(pos, pos+W, steps(:,:,2), sw)
+  if (sw) steps(:,:,1) = minval(steps, 3)
+
+  if (sn .and. ss) then
+    array(pos(1),pos(2)) = "|"
+  else if (se .and. sw) then
+    array(pos(1),pos(2)) = "-"
+  else if (sn .and. se) then
+    array(pos(1),pos(2)) = "L"
+  else if (se .and. ss) then
+    array(pos(1),pos(2)) = "F"
+  else if (ss .and. sw) then
+    array(pos(1),pos(2)) = "7"
+  else if (sw .and. sn) then
+    array(pos(1),pos(2)) = "J"
+  else
+    write(0,*) "unknown case in patch"
+  end if 
+  
+  ! block
+  !   integer j
+  !   do j = 1, bounds(2)
+  !     write(0,'(*(A3)/)') array(:bounds(1),j)
+  !     write(0,'(*(I3)/)') steps(:bounds(1),j,1)
+  !   end do
+  ! end block
 
   steps(:,:,2) = 0
-  where (steps == huge(steps)) steps = 0
+  block
+    integer i, j
+    do concurrent (j = 1:bounds(2))
+      do concurrent (i = 1:bounds(1))
+        if (steps(i,j,1) == huge(steps(i,j,1))) then
+          array(i,j) = "."
+          steps(i,j,1) = 0
+        end if
+      end do
+    end do
+  end block
   
-  res1 = maxval(steps)
+  res1 = maxval(steps(:bounds(1),:bounds(2),1))
+
+  block
+    integer j
+    res2 = 0
+    do j = 1, bounds(2)
+      res2 = res2 + row_area(array(:bounds(1),j))
+    end do
+  end block
+
 
   write(*,'("Part 1: " I0)') res1
+  write(*,'("Part 2: " I0)') res2
 
 contains
 
@@ -72,7 +116,6 @@ contains
       success = .false.
       return
     end if
-
 
     do
       step_overlay(p(1),p(2)) = min(step_overlay(p(1),p(2)), step_num)
@@ -96,6 +139,8 @@ contains
       case ("S")
         success = .true.
         return
+      case default
+        write(0,*) "unknown case in walk"
       end select
 
       if (any(p <= 0) .or. any(p > bounds)) success = .false.
@@ -108,7 +153,7 @@ contains
   subroutine try_walks(q, p, dp1, dp2, success)
     integer, dimension(2), intent(inout) :: q, p
     integer, dimension(2), intent(in) :: dp1, dp2
-    logical, intent(out) :: success
+    logical, intent(out), optional :: success
     integer, dimension(2) :: oldp
 
     oldp = p
@@ -125,5 +170,41 @@ contains
 
     if (success) q = oldp
   end subroutine
+
+  function row_area(row) result(area)
+    character, dimension(:), intent(in) :: row
+    integer :: area
+    integer :: i
+
+    logical is_inside, is_roof
+    is_inside = .false.
+    is_roof = .false.
+    area = 0
+
+    do i = lbound(row,1), ubound(row,1)
+      select case (row(i))
+      case ("|")
+        is_inside = .not. is_inside
+      case ("-")
+        continue
+      case ("F")
+        is_roof = .true.
+      case ("L")
+        is_roof = .false.
+      case ("J")
+        is_inside = is_inside .neqv. is_roof
+      case ("7")
+        is_inside = is_inside .eqv. is_roof
+      case (".")
+        area = area + merge(1,0,is_inside)
+      case default
+        ! write(0,*) "unknown case in area"
+      end select
+    end do
+    
+    ! write(0,'(I4 ":" *(A1))') area, row
+  end function
+
+
 
 end program pipes
