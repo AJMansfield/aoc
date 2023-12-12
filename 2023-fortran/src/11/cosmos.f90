@@ -44,10 +44,10 @@ end block main
 
   call cpu_time(t4)
 
-  write(0,'("read : " F10.6)') t2 - t1
-  write(0,'("work : " F10.6)') t3 - t2
-  write(0,'("write: " F10.6)') t4 - t3
-  write(0,'("total: " F10.6)') t4 - t1
+  ! write(0,'("read : " F10.6)') t2 - t1
+  ! write(0,'("work : " F10.6)') t3 - t2
+  ! write(0,'("write: " F10.6)') t4 - t3
+  ! write(0,'("total: " F10.6)') t4 - t1
 
 contains
 
