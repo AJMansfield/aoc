@@ -57,8 +57,8 @@ contains
     integer :: n
     integer, dimension(max_stars) :: is, js
     
-    integer, dimension(size(array, dim=1)) :: ei
-    integer, dimension(size(array, dim=2)) :: ej
+    integer(kind=1), dimension(size(array, dim=1)) :: ei
+    integer(kind=1), dimension(size(array, dim=2)) :: ej
 
     call collate_stars(array, is, js, n)
     call make_expansion_units(array, ei, ej)
@@ -88,8 +88,8 @@ contains
 
   pure subroutine make_expansion_units(array, ei, ej)
     character, dimension(:,:), intent(in) :: array
-    integer, dimension(size(array, dim=1)), intent(out) :: ei
-    integer, dimension(size(array, dim=2)), intent(out) :: ej
+    integer(kind=1), dimension(size(array, dim=1)), intent(out) :: ei
+    integer(kind=1), dimension(size(array, dim=2)), intent(out) :: ej
     integer :: i, j
 
     ei = 0
@@ -106,8 +106,8 @@ contains
   pure function calc_result_for_expansion(expansion_rate, is, js, ei, ej) result(result)
     integer, intent(in) :: expansion_rate
     integer, dimension(:), intent(in) :: is, js
-    integer, dimension(:), intent(in) :: ei
-    integer, dimension(:), intent(in) :: ej
+    integer(kind=1), dimension(:), intent(in) :: ei
+    integer(kind=1), dimension(:), intent(in) :: ej
     integer(kind=8) :: result
 
     integer, dimension(size(is)) :: xs, ys
