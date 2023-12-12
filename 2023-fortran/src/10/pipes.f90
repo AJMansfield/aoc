@@ -12,7 +12,7 @@ program pipes
 
   real t1, t2, t3, t4
 
-  ! call cpu_time(t1)
+  call cpu_time(t1)
 
   block
     integer :: ios
@@ -29,7 +29,7 @@ program pipes
     call c_f_pointer(c_loc(buf), array, bounds)
   end block
 
-  ! call cpu_time(t2)
+  call cpu_time(t2)
 
   block
     integer, dimension(2) :: pos
@@ -49,12 +49,12 @@ program pipes
     res2 = abs(area) - perimeter/2 + 1 ! subtract out the line width
   end block
 
-  ! call cpu_time(t3)
+  call cpu_time(t3)
 
   write(*,'("Part 1: " I0)') res1
   write(*,'("Part 2: " I0)') res2
 
-  ! call cpu_time(t4)
+  call cpu_time(t4)
 
   ! write(0,'("read : " F10.6)') t2 - t1
   ! write(0,'("work : " F10.6)') t3 - t2
