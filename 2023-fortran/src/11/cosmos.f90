@@ -2,7 +2,7 @@ program cosmos
   use iso_c_binding
   implicit none
   
-  integer, parameter :: max_stars = 50
+  integer, parameter :: max_stars = 500
 
 main: block
   character(32768), target :: buf
@@ -48,22 +48,23 @@ contains
 
     call collate_stars(array, is, js, n)
 
-    write(0, '("n:   " *(I3))') n
-    write(0, '("is:  " *(I3))') is(:n)
-    write(0, '("js:  " *(I3))') js(:n)
+    ! write(0, '("n:   " *(I4))') n
+    ! write(0, '("is:  " *(I4))') is(:n)
+    ! write(0, '("js:  " *(I4))') js(:n)
 
     call expansion(array, i2x, j2y)
     
-    write(0, '("i2x: " *(I3))') i2x
-    write(0, '("j2y: " *(I3))') j2y
+    ! write(0, '("i2x: " *(I4))') i2x
+    ! write(0, '("j2y: " *(I4))') j2y
 
     xs = [(i2x(is(a)), a=1,n)]
     ys = [(j2y(js(a)), a=1,n)]
 
-    write(0, '("is:  " *(I3))') xs(:n)
-    write(0, '("js:  " *(I3))') ys(:n)
+    ! write(0, '("is:  " *(I4))') xs(:n)
+    ! write(0, '("js:  " *(I4))') ys(:n)
 
     write(*, '("Part 1: " I0)') sum_distance_pairs(xs(:n), ys(:n))
+    write(*, '("Part 2: " A1)') "?"
 
   end subroutine
 
