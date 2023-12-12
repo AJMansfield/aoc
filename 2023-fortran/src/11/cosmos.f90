@@ -63,18 +63,9 @@ contains
     call collate_stars(array, is, js, n)
     call make_expansion_units(array, ei, ej)
 
-    ! write(0, '("n:   " *(I4))') n
-    ! write(0, '("is:  " *(I4))') is(:n)
-    ! write(0, '("js:  " *(I4))') js(:n)
-    ! write(0, '("ei:  " *(I4))') ei
-    ! write(0, '("ej:  " *(I4))') ej
-    ! write(0, '("is:  " *(I4))') xs(:n)
-    ! write(0, '("js:  " *(I4))') ys(:n)
-
     result_1 = calc_result_for_expansion(expansion_rate_1, is(:n), js(:n), ei, ej)
     result_2 = calc_result_for_expansion(expansion_rate_2, is(:n), js(:n), ei, ej)
     result_2e = calc_result_for_expansion(expansion_rate_2e, is(:n), js(:n), ei, ej)
-
   end subroutine
 
   pure subroutine collate_stars(array, is, js, n)
@@ -105,17 +96,11 @@ contains
     ej = 0
     where (all(array=='.', dim=2)) ei = 1
     where (all(array=='.', dim=1)) ej = 1
-    ! ei = merge(1,0,all(array=='.', dim=2)) ! for some reason merge doesn't work quite right at -O3? ei and ej were ending up with -1 instead of +1
+    ! ei = merge(1,0,all(array=='.', dim=2)) ! for some reason merge doesn't work quite right at -O3
     ! ej = merge(1,0,all(array=='.', dim=1))
-
-    ! write(0, '("ei0: " *(I4))') ei
-    ! write(0, '("ej0: " *(I4))') ej
 
     ei = [(sum(ei(1:i)), i=1,size(ei))]
     ej = [(sum(ej(1:j)), j=1,size(ej))]
-
-    ! write(0, '("ei1: " *(I4))') ei
-    ! write(0, '("ej1: " *(I4))') ej
   end subroutine
   
   pure function calc_result_for_expansion(expansion_rate, is, js, ei, ej) result(result)
@@ -125,26 +110,22 @@ contains
     integer, dimension(:), intent(in) :: ej
     integer(kind=8) :: result
 
-    integer(kind=8), dimension(size(is)) :: xs, ys
-    integer(kind=8) :: x
+    integer, dimension(size(is)) :: xs, ys
+    integer :: z
     integer :: a
 
-    x = expansion_rate - 1
+    z = expansion_rate - 1
 
-    xs = [(ei(is(a)) * x + is(a), a=1,size(is))]
-    ys = [(ej(js(a)) * x + js(a), a=1,size(js))]
-    
-    ! write(0, '("xs:  " *(I4))') xs
-    ! write(0, '("ys:  " *(I4))') ys
+    xs = [(ei(is(a)) * z + is(a), a=1,size(is))]
+    ys = [(ej(js(a)) * z + js(a), a=1,size(js))]
 
     result = sum_distance_pairs(xs, ys)
   end function
 
   pure function sum_distance_pairs(xs, ys) result(total)
-    integer(kind=8), dimension(:), intent(in) :: xs, ys
+    integer, dimension(:), intent(in) :: xs, ys
     integer(kind=8) :: total
     integer :: a, b
-
     total = 0
     do a = lbound(xs,1), ubound(xs,1)-1
       do b = a+1, ubound(xs,1)
@@ -154,12 +135,9 @@ contains
   end function
   
   pure function star_distance(x1,y1,x2,y2) result(distance)
-    integer(kind=8), intent(in) :: x1,y1,x2,y2
-    integer(kind=8) :: distance
+    integer, intent(in) :: x1,y1,x2,y2
+    integer :: distance
     distance = abs(x2-x1) + abs(y2-y1)
-    
-    ! write(0, '("(" I9 "," I9 ")(" I9 "," I9 "):" I9)') x1,y1,x2,y2,distance
-
   end function
 
 end program cosmos
