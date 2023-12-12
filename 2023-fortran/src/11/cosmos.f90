@@ -23,8 +23,10 @@ main: block
     call c_f_pointer(c_loc(buf), array, [w,h])
   end block
 
+
   call do_everything(array)
 
+  
   write(*, '("Part 1: " I0)') result_1
   write(*, '("Part 2: " I0)') result_2
   write(*, '("Part 2e: " I0)') result_2e
@@ -33,49 +35,17 @@ end block main
 
 contains
 
-  subroutine print_array(array)
-    character, dimension(:,:), intent(in) :: array
-    integer :: j
-    do j = lbound(array,2), ubound(array,2)
-      write(0, '(I3 ": " *(A1))') j, array(:,j)
-    end do
-  end subroutine
-
   subroutine do_everything(array)
     character, dimension(:,:), intent(in) :: array
-    
-    integer, dimension(size(array, dim=1)) :: i2x
-    integer, dimension(size(array, dim=2)) :: j2y
 
     integer :: n
-    integer, dimension(max_stars) :: is, js, xs, ys
-    integer :: a
-
-
-    ! write(0, '("n:   " *(I4))') n
-    ! write(0, '("is:  " *(I4))') is(:n)
-    ! write(0, '("js:  " *(I4))') js(:n)
-    ! write(0, '("i2x: " *(I4))') i2x
-    ! write(0, '("j2y: " *(I4))') j2y
-    ! write(0, '("is:  " *(I4))') xs(:n)
-    ! write(0, '("js:  " *(I4))') ys(:n)
+    integer, dimension(max_stars) :: is, js
 
     call collate_stars(array, is, js, n)
 
-    call expansion(array, expansion_rate_1, i2x, j2y)
-    xs = [(i2x(is(a)), a=1,n)]
-    ys = [(j2y(js(a)), a=1,n)]
-    result_1 = sum_distance_pairs(xs(:n), ys(:n))
-
-    call expansion(array, expansion_rate_2, i2x, j2y)
-    xs = [(i2x(is(a)), a=1,n)]
-    ys = [(j2y(js(a)), a=1,n)]
-    result_2 = sum_distance_pairs(xs(:n), ys(:n))
-
-    call expansion(array, expansion_rate_2e, i2x, j2y)
-    xs = [(i2x(is(a)), a=1,n)]
-    ys = [(j2y(js(a)), a=1,n)]
-    result_2e = sum_distance_pairs(xs(:n), ys(:n))
+    result_1 = calc_result_for_expansion(array, expansion_rate_1, is(:n), js(:n))
+    result_2 = calc_result_for_expansion(array, expansion_rate_2, is(:n), js(:n))
+    result_2e = calc_result_for_expansion(array, expansion_rate_2e, is(:n), js(:n))
 
   end subroutine
 
@@ -96,6 +66,23 @@ contains
       end do
     end do
   end subroutine
+  
+  pure function calc_result_for_expansion(array, expansion_rate, is, js) result(result)
+    character, dimension(:,:), intent(in) :: array
+    integer, intent(in) :: expansion_rate
+    integer, dimension(:), intent(in) :: is, js
+    integer(kind=8) :: result
+
+    integer, dimension(size(is)) :: xs, ys
+    integer, dimension(size(array, dim=1)) :: i2x
+    integer, dimension(size(array, dim=2)) :: j2y
+    integer :: a
+    
+    call expansion(array, expansion_rate, i2x, j2y)
+    xs = [(i2x(is(a)), a=1,size(is))]
+    ys = [(j2y(js(a)), a=1,size(js))]
+    result = sum_distance_pairs(xs, ys)
+  end function
 
   pure subroutine expansion(array, expansion_rate, i2x, j2y)
     character, dimension(:,:), intent(in) :: array
@@ -104,15 +91,14 @@ contains
     integer, dimension(size(array, dim=2)), intent(out) :: j2y
     integer :: i, j
 
-    i2x = 1 ![(i, i=1,size(row))]
-    j2y = 1 ![(i, i=1,size(col))]
+    i2x = 1
+    j2y = 1
 
     where (all(array=='.', dim=2)) i2x = expansion_rate
     where (all(array=='.', dim=1)) j2y = expansion_rate
 
-    i2x = [(sum(i2x(1:i)), i=1,size(i2x))] ![(i, i=1,size(row))]
-    j2y = [(sum(j2y(1:j)), j=1,size(j2y))] ![(i, i=1,size(row))]
-    
+    i2x = [(sum(i2x(1:i)), i=1,size(i2x))]
+    j2y = [(sum(j2y(1:j)), j=1,size(j2y))]
   end subroutine
 
   pure function sum_distance_pairs(xs, ys) result(total)
