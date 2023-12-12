@@ -40,12 +40,16 @@ contains
 
     integer :: n
     integer, dimension(max_stars) :: is, js
+    
+    integer, dimension(size(array, dim=1)) :: ei
+    integer, dimension(size(array, dim=2)) :: ej
 
     call collate_stars(array, is, js, n)
+    call make_expansion_units(array, ei, ej)
 
-    result_1 = calc_result_for_expansion(array, expansion_rate_1, is(:n), js(:n))
-    result_2 = calc_result_for_expansion(array, expansion_rate_2, is(:n), js(:n))
-    result_2e = calc_result_for_expansion(array, expansion_rate_2e, is(:n), js(:n))
+    result_1 = calc_result_for_expansion(expansion_rate_1, is(:n), js(:n), ei, ej)
+    result_2 = calc_result_for_expansion(expansion_rate_2, is(:n), js(:n), ei, ej)
+    result_2e = calc_result_for_expansion(expansion_rate_2e, is(:n), js(:n), ei, ej)
 
   end subroutine
 
@@ -56,8 +60,8 @@ contains
     integer :: i, j
 
     n = 0
-    do i = lbound(array,1), ubound(array,1)
-      do j = lbound(array,2), ubound(array,2)
+    do j = lbound(array,2), ubound(array,2)
+      do i = lbound(array,1), ubound(array,1)
         if (array(i,j) == '#') then
           n = n+1
           is(n) = i
@@ -66,42 +70,40 @@ contains
       end do
     end do
   end subroutine
-  
-  pure function calc_result_for_expansion(array, expansion_rate, is, js) result(result)
+
+  subroutine make_expansion_units(array, ei, ej)
     character, dimension(:,:), intent(in) :: array
+    integer, dimension(size(array, dim=1)), intent(out) :: ei
+    integer, dimension(size(array, dim=2)), intent(out) :: ej
+    integer :: i, j
+
+    ei = merge(1,0,all(array=='.', dim=2))
+    ej = merge(1,0,all(array=='.', dim=1))
+
+    ei = [(sum(ei(1:i)), i=1,size(ei))]
+    ej = [(sum(ej(1:j)), j=1,size(ej))]
+  end subroutine
+  
+  function calc_result_for_expansion(expansion_rate, is, js, ei, ej) result(result)
     integer, intent(in) :: expansion_rate
     integer, dimension(:), intent(in) :: is, js
+    integer, dimension(:), intent(in) :: ei
+    integer, dimension(:), intent(in) :: ej
     integer(kind=8) :: result
 
     integer, dimension(size(is)) :: xs, ys
-    integer, dimension(size(array, dim=1)) :: i2x
-    integer, dimension(size(array, dim=2)) :: j2y
     integer :: a
+
+    xs = [(ei(is(a)) * (expansion_rate-1) + is(a), a=1,size(is))]
+    ys = [(ej(js(a)) * (expansion_rate-1) + js(a), a=1,size(js))]
     
-    call expansion(array, expansion_rate, i2x, j2y)
-    xs = [(i2x(is(a)), a=1,size(is))]
-    ys = [(j2y(js(a)), a=1,size(js))]
+    ! write(0, '("xs:  " *(I4))') xs
+    ! write(0, '("ys:  " *(I4))') ys
+
     result = sum_distance_pairs(xs, ys)
   end function
 
-  pure subroutine expansion(array, expansion_rate, i2x, j2y)
-    character, dimension(:,:), intent(in) :: array
-    integer, intent(in) :: expansion_rate
-    integer, dimension(size(array, dim=1)), intent(out) :: i2x
-    integer, dimension(size(array, dim=2)), intent(out) :: j2y
-    integer :: i, j
-
-    i2x = 1
-    j2y = 1
-
-    where (all(array=='.', dim=2)) i2x = expansion_rate
-    where (all(array=='.', dim=1)) j2y = expansion_rate
-
-    i2x = [(sum(i2x(1:i)), i=1,size(i2x))]
-    j2y = [(sum(j2y(1:j)), j=1,size(j2y))]
-  end subroutine
-
-  pure function sum_distance_pairs(xs, ys) result(total)
+  function sum_distance_pairs(xs, ys) result(total)
     integer, dimension(:), intent(in) :: xs, ys
     integer(kind=8) :: total
     integer :: a, b
@@ -114,10 +116,13 @@ contains
     end do
   end function
   
-  pure function star_distance(x1,y1,x2,y2) result(distance)
+  function star_distance(x1,y1,x2,y2) result(distance)
     integer, intent(in) :: x1,y1,x2,y2
     integer :: distance
     distance = abs(x2-x1) + abs(y2-y1)
+    
+    ! write(0, '("(" I4 "," I4 ")(" I4 "," I4 "):" I4)') x1,y1,x2,y2,distance
+
   end function
 
 end program cosmos
