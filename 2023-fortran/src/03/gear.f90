@@ -87,7 +87,7 @@ program gear
         end if
 
         if (targeting .and. .not. is_digit(i-1,j)) then
-          read(buf((j-1)*w+i:(j-1)*w+k), *) num
+          read(buf((j-1)*w+i:(j-1)*w+k), *, iostat=ios) num
           sums(j) = sums(j) + num
           targeting = .false.
         end if

@@ -11,7 +11,7 @@ NAME := aoc
 
 # Configuration settings
 FC := gfortran
-FFLAGS := -std=gnu
+FFLAGS := -std=gnu -O3
 RM := rm -f
 
 # List of all source files
