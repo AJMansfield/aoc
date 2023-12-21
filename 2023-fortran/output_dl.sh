@@ -3,6 +3,7 @@ script_dir=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
 usage () {
     printf "Usage: %s: -y ${year:-YEAR} -d ${day:-DAY} -o ${output:-OUTPUT} -S TOKEN_FILE\n" "$0"
+    printf "Downloads your submitted answers using your personal token and formats them for output.txt."
     exit 1
 }
 
@@ -29,7 +30,7 @@ temp_doc="$(mktemp)"
 trap 'rm -rf -- "$temp_doc"' EXIT
 
 echo "retrieving ${url}" >&2
-curl --compressed \
+curl --silent --compressed \
  --user-agent 'AOC-Test-Runner-Bot +https://github.com/AJMansfield/aoc/blob/master/2023-fortran/' \
  -H "Cookie: session=${session_token}" \
  -o "${temp_doc}" \

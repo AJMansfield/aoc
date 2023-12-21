@@ -3,6 +3,7 @@ script_dir=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 
 usage () {
     printf "Usage: %s: -y ${year:-YEAR} -d ${day:-DAY} -o ${output:-OUTPUT} -S TOKEN_FILE\n" "$0"
+    printf "Downloads your customized input using your personalized token to use as input.txt."
     exit 1
 }
 
@@ -26,7 +27,7 @@ done
 url="https://adventofcode.com/${year}/day/${day}/input"
 
 echo "retrieving ${url}" >&2
-curl --compressed \
+curl --silent --compressed \
  --user-agent 'AOC-Test-Runner-Bot +https://github.com/AJMansfield/aoc/blob/master/2023-fortran/' \
  -H "Cookie: session=${session_token}" \
  -o "${output}" \
