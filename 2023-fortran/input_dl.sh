@@ -10,7 +10,7 @@ while getopts y:d:o:s:S: flag
 do
     case $flag in
     y) year="$OPTARG" ;;
-    d) day=$((OPTARG+0)) ;; # +0 to remove leading zero if needed
+    d) day=$((10#$OPTARG)) ;; # remove leading zero if needed
     o) output="$OPTARG" ;;
     s) session_token="$OPTARG" ;;
     S) session_token=$(cat "$OPTARG") ;;
