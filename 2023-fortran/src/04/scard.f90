@@ -34,9 +34,9 @@ program scard
 
     read(*, ifmt, iostat=ios) card, winning, drawn
   end do
-
-  write(*,*) "Part 1:", total_points
-  write(*,*) "Part 2:", total_cards
+  
+  write(*,'("Part 1: " I0)') total_points
+  write(*,'("Part 2: " I0)') total_cards
 
 contains
 

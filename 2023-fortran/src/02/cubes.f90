@@ -50,7 +50,7 @@ program cubes
 
   end do each_game
 
-  write(*,*) "Part 1:", acc1
-  write(*,*) "Part 2:", acc2
+  write(*,'("Part 1: " I0)') acc1
+  write(*,'("Part 2: " I0)') acc2
 
 end program cubes

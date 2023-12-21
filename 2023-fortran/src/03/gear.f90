@@ -95,7 +95,7 @@ program gear
       end do
     end do
 
-    write(*,*) "Part 1:", sum(sums)
+    write(*,'("Part 1: " I0)') sum(sums)
 
     do j = 1, h
       do i = 1, w
@@ -103,8 +103,7 @@ program gear
       end do
     end do
 
-    
-    write(*,*) "Part 2:", sum(gear_totals)
+    write(*,'("Part 2: " I0)') sum(gear_totals)
   end block
 
 contains
