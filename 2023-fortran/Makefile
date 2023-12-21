@@ -12,7 +12,8 @@ NAME := aoc
 
 # Configuration settings
 FC := gfortran
-FFLAGS := -std=gnu -Ofast
+override FFLAGS += -std=gnu -Ofast
+# run with `make target FFLAGS=-DPERF_TIME` to get perf info
 RM := rm -f
 
 DIRS := $(wildcard src/[0123456789][0123456789])
@@ -74,12 +75,11 @@ $(REAL_RUNS): run_%: $$(filter src/$$(*D)/$$(PERCENT),$$(EXES)) src/$$(*D)/input
 $(TEST_RUNS): run_%: $$(filter src/$$(*D)/$$(PERCENT),$$(EXES)) src/$$(*D)/input_$$(*F).txt src/$$(*D)/output_$$(*F).txt
 	- $< < src/$(*D)/input_$(*F).txt | diff -N - src/$(*D)/output_$(*F).txt
 
-
-X = $(filter run_01%,$(TEST_RUNS))
-
-.PHONY: all clean list run $(RUNS) $(REAL_RUNS) $(TEST_RUNS)
+.PHONY: all clean clean_all list run $(RUNS) $(REAL_RUNS) $(TEST_RUNS)
 all: $(EXES)
 clean:
+	$(RM) $(filter %.exe, $(EXES))
+clean_all:
 	$(RM) $(filter %.exe, $(EXES))
 	$(RM) $(filter %/input.txt, $(INPUTS))
 	$(RM) $(filter %/output.txt, $(OUTPUTS))
@@ -88,5 +88,4 @@ list:
 	@echo "RUNS: $(RUNS)"
 	@echo "REAL_RUNS: $(REAL_RUNS)"
 	@echo "TEST_RUNS: $(TEST_RUNS)"
-	@echo "X : $(X)"
 run: $(RUNS)
