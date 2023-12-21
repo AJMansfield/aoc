@@ -2,3 +2,4 @@
 lib*.a
 *.exe
 *.mod
+token.txt
