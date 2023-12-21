@@ -7,9 +7,10 @@ program cosmos
   integer, parameter :: expansion_rate_1 = 2, expansion_rate_2 = 1000000, expansion_rate_2e = 100
   integer(kind=8) :: result_1, result_2, result_2e
 
-  
+#if defined PERF_TIME
   real t1, t2, t3, t4
   call cpu_time(t1)
+#endif
 
 main: block
   character(32768), target :: buf
@@ -29,12 +30,16 @@ main: block
 
     call c_f_pointer(c_loc(buf), array, [w,h])
   end block
-
+  
+#if defined PERF_TIME
   call cpu_time(t2)
+#endif
 
   call do_everything(array)
   
+#if defined PERF_TIME
   call cpu_time(t3)
+#endif
 
   write(*, '("Part 1: " I0)') result_1
   write(*, '("Part 2: " I0)') result_2
@@ -42,12 +47,14 @@ main: block
 
 end block main
 
+#if defined PERF_TIME
   call cpu_time(t4)
 
-  ! write(0,'("read : " F10.6)') t2 - t1
-  ! write(0,'("work : " F10.6)') t3 - t2
-  ! write(0,'("write: " F10.6)') t4 - t3
-  ! write(0,'("total: " F10.6)') t4 - t1
+  write(0,'("read : " F10.6)') t2 - t1
+  write(0,'("work : " F10.6)') t3 - t2
+  write(0,'("write: " F10.6)') t4 - t3
+  write(0,'("total: " F10.6)') t4 - t1
+#endif
 
 contains
 
@@ -118,6 +125,8 @@ contains
 
     xs = [(ei(is(a)) * z + is(a), a=1,size(is))]
     ys = [(ej(js(a)) * z + js(a), a=1,size(js))]
+
+    ! TODO replace dist(x1+z*e1,x2+z*e2) with dist(x1,x2)+z*dist(e1,e2)
 
     result = sum_distance_pairs(xs, ys)
   end function
