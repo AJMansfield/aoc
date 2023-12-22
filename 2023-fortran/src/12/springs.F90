@@ -62,19 +62,10 @@ end block input
 part1: block
   integer :: i
 
-  ! write(0, '("h: " I0)') h
-  ! write(0, '("n: " *(I3))') n(:h)
-  ! write(0, '("w: " *(I3))') w(:h)
-  ! write(0, '("s: " *(7I3:/"   "))') segments(:,:h)
-  ! write(0, '("a: " *(21I3:/"   ") )') status(:,:h)
-
   res1 = 0
   do i=1,h
-    ! write(0, '(/"Row " I0)') i
     res1 = res1 + number_of_matches(status(:w(i),i), segments(:n(i),i))
   end do
-
-  ! write(0, '("r: " *(I2:/"   ") )') result(:h)
 
 end block part1
 part2: block
@@ -85,36 +76,23 @@ part2: block
 
   res2 = 0
   do i=1,h
+    big_n = n(i)*unfold_by
+    big_w = (w(i)+1)*unfold_by-1
 
-    do concurrent (j = 1:n(i)*unfold_by:n(i))
+    do concurrent (j = 1:big_n:n(i))
       lb = j
       ub = j + n(i)
       big_segment(lb:ub) = segments(:n(i),i)
     end do
     big_status = MAYBE
-    do concurrent (j = 1:(w(i)+1)*unfold_by:(w(i)+1))
+    do concurrent (j = 1:big_w:w(i)+1)
       lb = j
       ub = j + w(i)
       big_status(lb:ub) = status(:w(i),i)
     end do
-    big_n = n(i)*unfold_by
-    big_w = (w(i)+1)*unfold_by-1
 
-    ! write(0, '("s: " *(I2))') big_segment(:big_n)
-    ! write(0, '("a: " *(I1))') big_status(:big_w)
-    
     res2 = res2 + number_of_matches(big_status(:big_w), big_segment(:big_n))
-    
-    ! write(0, '("i: " I4 " r:" I14)') i, res2
-
   end do
-
-  ! write(0, '("h: " I0)') h
-  ! write(0, '("n: " *(I6))') big_n(:h)
-  ! write(0, '("w: " *(I6))') big_w(:h)
-  ! write(0, '("s: " *(7I3:/"   "))') big_segments(:,:h)
-  ! write(0, '("a: " *(21I3:/"   ") )') big_status(:,:h)
-
 end block part2
 
 #if defined PERF_TIME
@@ -144,9 +122,9 @@ function number_of_matches(status, segments) result(num)
   
   integer(Kres) :: num
 
-  integer(Kres), dimension(size(status),size(segments)), target :: cache_backing
+  integer(Kres), dimension(size(status),size(segments)), target :: cache_mem
   integer(Kres), dimension(:,:), pointer :: cache
-  cache => cache_backing
+  cache => cache_mem
 
   call clear_cache(cache)
 
@@ -159,7 +137,6 @@ recursive function number_of_matches_anywhere(status, segments, cache) result(nu
   integer(Kseg), dimension(:), intent(in) :: segments
   integer(Kres), dimension(:,:), intent(inout), pointer :: cache
   integer(Kres) :: num
-  integer(Kres) :: n
 
   integer :: i, ub
 
@@ -177,8 +154,7 @@ recursive function number_of_matches_anywhere(status, segments, cache) result(nu
 
   num = 0
   do i = 1, ub
-    n = number_of_matches_here(status(i:), segments, cache)
-    num = num + n
+    num = num + number_of_matches_here(status(i:), segments, cache)
     if (status(i) <= BROKE) exit
   end do
 
@@ -191,7 +167,6 @@ recursive function number_of_matches_here(status, segments, cache) result(num)
   integer(Kres) :: num
 
   integer :: seg
-  integer :: lb
   
   call read_cache(status, segments, cache, num)
   if (num /= CACHE_MISS) return ! caching makes this O(good) instead of O(terrible)
@@ -212,12 +187,10 @@ recursive function number_of_matches_here(status, segments, cache) result(num)
   ! at this point, we have successfully laid out the currently-pending segment
   ! therefore, we just need to truncate and search again
 
-  lb = seg + 2
-  
-  num = number_of_matches_anywhere(status(lb:), segments(2:), cache)
+  num = number_of_matches_anywhere(status(seg+2:), segments(2:), cache)
   
   call write_cache(status, segments, cache, num)
-  ! write(0, '("n: (rec)" I0)') num
+
 end function number_of_matches_here
 
 pure subroutine read_cache(status, segments, cache, val)
