@@ -1,6 +1,11 @@
 program springs
   use iso_c_binding
   implicit none
+  
+  integer, parameter :: max_h = 1000, max_w_line = 32, max_w = 20, max_n = 5
+  integer, parameter :: Kstat = 1, Kseg = 2
+
+  integer(Kstat), parameter :: BROKE = 1, MAYBE = 2, FIXED = 3
 
 #if defined PERF_TIME
   real t1, t2, t3, t4
@@ -8,24 +13,26 @@ program springs
 #endif
 
 main: block
-  integer, parameter ::max_h = 1000, max_w = 32, max_n = 5
   integer :: h
   integer, dimension(max_h) :: w, n
-  integer, dimension(max_n, max_h) :: s
+  integer(Kseg), dimension(max_n, max_h) :: segments
+  integer(Kstat), dimension(max_w, max_h) :: status
+  integer, dimension(max_h) :: result
   
-  character(max_w), dimension(max_h), target :: buf
-  character(1), dimension(:, :), pointer :: arr
-
-  call c_f_pointer(c_loc(buf), arr, [max_w, max_h])
-
-  w = -1
+  h = -1
+  w = -1 ! debug sentinels -- should never see a negative anywhere else
   n = -1
-  s = -1
-
+  segments = -1
+  status = -1
 
 input: block
   integer :: ios
   integer :: i
+
+  character(max_w_line), dimension(max_h), target :: buf
+  character(1), dimension(:, :), pointer :: arr
+
+  call c_f_pointer(c_loc(buf), arr, [max_w_line, max_h])
   
   do i = 1, max_h
     read(*, '(A)', iostat=ios) buf(i)
@@ -33,21 +40,44 @@ input: block
   end do
 
   h = i - 1
-  w = index(buf, " ")
-  n = sum(merge(1,0,arr==","), dim=1) + 1
+  w = index(buf, " ") - 1
+  n = count(arr==",", dim=1) + 1
 
-  do i = 1, max_h
-    read(buf(w(i):), *, iostat=ios) s(:,i)
+  do i = 1, h
+    read(buf(i)(w(i)+1:), *, iostat=ios) segments(:,i)
   end do
-  
+
+  where(arr(:max_w,:) == "#") status(:,:) = BROKE
+  where(arr(:max_w,:) == "?") status(:,:) = MAYBE
+  where(arr(:max_w,:) == ".") status(:,:) = FIXED
 
 end block input
 #if defined PERF_TIME
   call cpu_time(t2)
 #endif
 work: block
+  integer :: i
 
-! read input
+  integer(Kseg), dimension(max_w, max_h) :: allowed_length
+  integer(Kseg), dimension(max_w, max_h) :: forced_length
+  do i=1,max_h
+    call calc_fwd_lengths(status(:,i), allowed_length(:,i), forced_length(:,i))
+  end do
+
+  ! write(0, '("h: " I0)') h
+  ! write(0, '("w: " *(I2 " "))') w(:h)
+  ! write(0, '("n: " *(I2 " "))') n(:h)
+  ! write(0, '("s: " *(5(I3 " "):/"   "))') segments(:,:h)
+  ! write(0, '("a: " *(20(I2 " "):/"   ") )') status(:,:h)
+  ! write(0, '("A: " *(20(I2 " "):/"   ") )') allowed_length(:,:h)
+  ! write(0, '("F: " *(20(I2 " "):/"   ") )') forced_length(:,:h)
+
+  do i=1,h
+    write(0, '(/"Row " I0)') i
+    result(i) = number_of_matches(status(:w(i),i), segments(:n(i),i),  allowed_length(:w(i),i), forced_length(:w(i),i))
+  end do
+
+  ! write(0, '("r: " *(I2:/"   ") )') result(:h)
 
 end block work
 #if defined PERF_TIME
@@ -55,15 +85,8 @@ end block work
 #endif
 output: block
 
-  write(*, '("Part 1: " I0)') 0
+  write(*, '("Part 1: " I0)') sum(result(:h))
   write(*, '("Part 2: " I0)') 0
-
-
-  write(0, '("h: " I0)') h
-  write(0, '("w: " *(I2 " "))') w(:h)
-  write(0, '("n: " *(I2 " "))') n(:h)
-  write(0, '("s: " *(5(I2 " "):/"   "))') s(:,:h)
-  write(0, '("a: " *(32(A1):/"   ") )') arr(:,:h)
 
 end block output
 end block main
@@ -77,5 +100,96 @@ end block main
 #endif
 
 contains
+
+pure subroutine calc_fwd_lengths(status, allowed_length, forced_length)
+  integer(Kstat), dimension(:), intent(in) :: status
+  integer(Kseg), dimension(size(status)), intent(out) :: allowed_length
+  integer(Kseg), dimension(size(status)), intent(out) :: forced_length
+
+  integer(Kseg) :: i, aL, fL
+  aL = 0_Kseg
+  fL = 0_Kseg
+  do i = size(status,kind=Kseg), 1_Kseg, -1_Kseg
+    select case (status(i))
+    case (BROKE)
+      aL = aL + 1_Kseg
+      fL = fL + 1_Kseg
+      allowed_length(i) = aL
+      forced_length(i) = fL
+    case (MAYBE)
+      aL = aL + 1_Kseg
+      fL = fL + 1_Kseg
+      allowed_length(i) = aL
+      forced_length(i) = fL
+      fL = 0_Kseg
+    case (FIXED)
+      aL = 0_Kseg
+      fL = 0_Kseg
+      allowed_length(i) = aL
+      forced_length(i) = fL
+    case default
+      aL = 0_Kseg
+      fL = 0_Kseg
+      allowed_length(i) = aL
+      forced_length(i) = fL
+    end select
+  end do
+
+  ! also, the forced length of a MAYBE directly before a BROKE is +1
+end subroutine
+
+recursive function number_of_matches(status, segments, allowed_length, forced_length) result(num)
+  integer(Kstat), dimension(:), intent(in) :: status
+  integer(Kseg), dimension(:), intent(in) :: segments
+  integer(Kseg), dimension(size(status)), intent(in) :: allowed_length, forced_length
+  integer :: num
+
+  integer :: min_remaining
+  integer :: i
+  integer :: seg
+  integer :: endpoint
+
+
+  if (size(segments) == 0) then
+    if (all(status >= MAYBE)) then
+      num = 1
+      ! write(0, '("n: (all)" I0)') num
+      return ! no more segments to lay out, and all of the spaces after this could be FIXED
+    else
+      num = 0
+      ! write(0, '("n: (brk)" I0)') num
+      return ! no more segments to lay out, but there is an obligate BROKE after this point
+    end if
+  end if
+
+  min_remaining = sum(segments) + size(segments) - 1
+  if (min_remaining > size(status)) then
+    num = 0
+    ! write(0, '("n: (min)" I0)') num
+    return ! too much total remaining length for the amount of space
+  end if
+
+  ! write(0, '("Recursing:")')
+  ! write(0, '("S: " *(I2 :" "))') status
+  ! write(0, '("s: " *(I2 :" "))') segments
+  ! write(0, '("A: " *(I2 :" "))') allowed_length
+  ! write(0, '("F: " *(I2 :" "))') forced_length
+
+  num = 0
+  seg = segments(1) ! try to lay out this next segment at each possible point
+
+  endpoint = findloc(status, BROKE, dim=1) ! don't search past next definite BROKE
+  if (endpoint == 0) endpoint = size(status) - min_remaining + 1
+
+  do i = 1, endpoint
+    if (allowed_length(i) < seg) cycle
+    if (forced_length(i) > seg) cycle
+
+    num = num + number_of_matches(status(i+seg+1:), segments(2:), allowed_length(i+seg+1:), forced_length(i+seg+1:))
+  end do
+
+  ! write(0, '("n: (rec)" I0)') num
+end function number_of_matches
+  
 
 end program springs
