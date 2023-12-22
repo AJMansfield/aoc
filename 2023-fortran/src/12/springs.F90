@@ -78,29 +78,30 @@ part1: block
 end block part1
 part2: block
   integer(Kseg), dimension(max_n*unfold_by) :: big_segment
-  integer(Kstat), dimension(max_w*unfold_by) :: big_status
+  integer(Kstat), dimension((max_w+1)*unfold_by-1) :: big_status
 
   integer :: i, j, lb, ub, big_w, big_n
 
   res2 = 0
   do i=1,h
-    write(0, '("i/r: " I4 " " I0)') i, res2
+    write(0, '("i: " I4 " r:" I0)') i, res2
 
     do concurrent (j = 1:n(i)*unfold_by:n(i))
       lb = j
       ub = j + n(i)
       big_segment(lb:ub) = segments(:n(i),i)
     end do
-    do concurrent (j = 1:w(i)*unfold_by:w(i))
+    big_status = MAYBE
+    do concurrent (j = 1:(w(i)+1)*unfold_by:(w(i)+1))
       lb = j
       ub = j + w(i)
       big_status(lb:ub) = status(:w(i),i)
     end do
     big_n = n(i)*unfold_by
-    big_w = w(i)*unfold_by
+    big_w = (w(i)+1)*unfold_by-1
 
-    write(0, '("s: " *(I2))') big_segment(:big_n)
-    write(0, '("a: " *(I1))') big_status(:big_w)
+    ! write(0, '("s: " *(I2))') big_segment(:big_n)
+    ! write(0, '("a: " *(I1))') big_status(:big_w)
     
     res2 = res2 + number_of_matches(big_status(:big_w), big_segment(:big_n))
   end do
@@ -134,7 +135,7 @@ end block main
 
 contains
 
-recursive function number_of_matches(status, segments) result(num)
+pure recursive function number_of_matches(status, segments) result(num)
   integer(Kstat), dimension(:), intent(in) :: status
   integer(Kseg), dimension(:), intent(in) :: segments
   integer(Kres) :: num
@@ -171,7 +172,7 @@ recursive function number_of_matches(status, segments) result(num)
   
 end function number_of_matches
 
-recursive function number_of_matches_here(status, segments) result(num)
+pure recursive function number_of_matches_here(status, segments) result(num)
   integer(Kstat), dimension(:), intent(in) :: status
   integer(Kseg), dimension(:), intent(in) :: segments
   integer(Kres) :: num
