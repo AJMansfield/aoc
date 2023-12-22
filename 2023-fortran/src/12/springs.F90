@@ -10,10 +10,14 @@ program springs
 
   integer(Kres) :: res1, res2
 
+  real :: tcb, tce, tctotal
+  real :: trb, tre, trtotal
 #if defined PERF_TIME
-  real t1, t2, t3, t4
+  real :: t1, t2, t3, t4
   call cpu_time(t1)
 #endif
+  tctotal=0
+  trtotal=0
 
 main: block
   integer :: h
@@ -84,7 +88,6 @@ part2: block
 
   res2 = 0
   do i=1,h
-    write(0, '("i: " I4 " r:" I0)') i, res2
 
     do concurrent (j = 1:n(i)*unfold_by:n(i))
       lb = j
@@ -103,7 +106,16 @@ part2: block
     ! write(0, '("s: " *(I2))') big_segment(:big_n)
     ! write(0, '("a: " *(I1))') big_status(:big_w)
     
+    call cpu_time(tcb)
+    trb = tcb
     res2 = res2 + number_of_matches(big_status(:big_w), big_segment(:big_n))
+    call cpu_time(tce)
+    tre = tce
+    tctotal = tctotal + (tce - tcb)
+    trtotal = trtotal + (tre - trb)
+    
+    write(0, '("i: " I4 " r:" I20 " tc:" F10.6 " tr:" F10.6)') i, res2, tctotal, trtotal
+
   end do
 
   ! write(0, '("h: " I0)') h
@@ -135,13 +147,17 @@ end block main
 
 contains
 
-pure recursive function number_of_matches(status, segments) result(num)
+recursive function number_of_matches(status, segments) result(num)
   integer(Kstat), dimension(:), intent(in) :: status
   integer(Kseg), dimension(:), intent(in) :: segments
   integer(Kres) :: num
   integer(Kres) :: n
 
   integer :: i, ub
+
+  call cpu_time(tce)
+  tctotal = tctotal + (tce - tcb)
+
   
   ! write(0, '("begin number_of_matches()")') 
   ! write(0, '("S= " *(I3))') status
@@ -162,6 +178,7 @@ pure recursive function number_of_matches(status, segments) result(num)
   ! write(0, '("i= " I0 ", " I0)') 1, ub
   num = 0
   do i = 1, ub
+    call cpu_time(tcb)
     n = number_of_matches_here(status(i:), segments)
     ! write(0, '("n[" I1 "]= " I0)') i, n
     num = num + n
@@ -172,13 +189,15 @@ pure recursive function number_of_matches(status, segments) result(num)
   
 end function number_of_matches
 
-pure recursive function number_of_matches_here(status, segments) result(num)
+recursive function number_of_matches_here(status, segments) result(num)
   integer(Kstat), dimension(:), intent(in) :: status
   integer(Kseg), dimension(:), intent(in) :: segments
   integer(Kres) :: num
 
   integer :: seg
   integer :: lb
+  call cpu_time(tce)
+  tctotal = tctotal + (tce - tcb)
 
   ! write(0, '("@s= " I0)') size(segments)
 
@@ -198,9 +217,10 @@ pure recursive function number_of_matches_here(status, segments) result(num)
   ! therefore, we just need to truncate and search again
 
   lb = seg + 2
+  
+  call cpu_time(tcb)
   num = number_of_matches(status(lb:), segments(2:))
   ! write(0, '("n: (rec)" I0)') num
 end function number_of_matches_here
   
-
 end program springs
