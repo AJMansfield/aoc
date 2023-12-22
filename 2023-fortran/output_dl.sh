@@ -31,7 +31,7 @@ trap 'rm -rf -- "$temp_doc"' EXIT
 
 echo "retrieving ${url}" >&2
 curl --silent --compressed \
- --user-agent 'AOC-Test-Runner-Bot +https://github.com/AJMansfield/aoc/blob/master/2023-fortran/' \
+ --user-agent "AJMansfield's AOC Script +mailto:anson.mansfield@gmail.com +https://github.com/AJMansfield/aoc/blob/master/2023-fortran/output_dl.sh" \
  -H "Cookie: session=${session_token}" \
  -o "${temp_doc}" \
  -- "${url}" \
@@ -41,10 +41,3 @@ curl --silent --compressed \
   grep -Po '(?<=<p>Your puzzle answer was <code>)\d*(?=</code>.</p>)' \
 | awk '$0="Part "NR": "$0' \
 > "${output}"
-
-# part1_sel='body > main:nth-child(3) > p:nth-child(2) > code:nth-child(1)'
-# part2_sel='body > main:nth-child(3) > p:nth-child(4) > code:nth-child(1)'
-
-# cat $temp_doc
-
-# xpath -e "${part1_xpath}" -e "${part2_xpath}" "${temp_doc}"
