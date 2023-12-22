@@ -2,13 +2,12 @@ program springs
   use iso_c_binding
   implicit none
   
-  integer, parameter :: max_h = 1000, max_n = 6, max_w_line = 32, max_w = 21
+  integer, parameter :: max_h = 1000, max_w_line = 32, max_w = 21, max_n = 6
   integer, parameter :: unfold_by = 5
-  integer, parameter :: Kstat = 1, Kseg = 1, Kres=8
+  integer, parameter :: Kstat = 1, Kseg = 1, Kres = 8
 
   integer(Kres), parameter :: CACHE_MISS = -1_Kres
-
-  integer(Kstat), parameter :: BROKE = 5, MAYBE = 6, FIXED = 7
+  integer(Kstat), parameter :: BROKE = 5_Kstat, MAYBE = 6_Kstat, FIXED = 7_Kstat
 
   integer(Kres) :: res1, res2
 
@@ -22,13 +21,14 @@ main: block
   integer(Kseg), dimension(max_n, max_h) :: segments
   integer(Kstat), dimension(max_w, max_h) :: status
   
-  h = -1
-  w = -1 ! debug sentinels -- should never see a negative anywhere else
-  n = -1
-  segments = -1
-  status = -1
+  ! h = -1
+  ! w = -1 ! debug sentinels -- should never see a negative anywhere else
+  ! n = -1
+  ! segments = -1
+  ! status = -1
 
 input: block
+
   integer :: ios
   integer :: i
 
@@ -47,7 +47,6 @@ input: block
   n = count(arr==",", dim=1) + 1
 
   do i = 1, h
-    ! write(0, '("seg[" I4 "]*" I1 "=" A)') i, n(i), buf(i)(w(i)+1:)
     read(buf(i)(w(i)+1:), *, iostat=ios) segments(:,i)
   end do
 
@@ -60,6 +59,7 @@ end block input
   call cpu_time(t2)
 #endif
 part1: block
+
   integer :: i
 
   res1 = 0
@@ -69,8 +69,9 @@ part1: block
 
 end block part1
 part2: block
-  integer(Kseg), dimension(max_n*unfold_by) :: big_segment
+
   integer(Kstat), dimension((max_w+1)*unfold_by-1) :: big_status
+  integer(Kseg), dimension(max_n*unfold_by) :: big_segment
 
   integer :: i, j, lb, ub, big_w, big_n
 
@@ -93,8 +94,8 @@ part2: block
 
     res2 = res2 + number_of_matches(big_status(:big_w), big_segment(:big_n))
   end do
-end block part2
 
+end block part2
 #if defined PERF_TIME
   call cpu_time(t3)
 #endif
