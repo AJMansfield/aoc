@@ -29,7 +29,7 @@ url="https://adventofcode.com/${year}/day/${day}/input"
 echo "retrieving ${url}" >&2
 curl --silent --compressed \
  --user-agent "AJMansfield's AOC Script +mailto:anson.mansfield@gmail.com +https://github.com/AJMansfield/aoc/blob/master/2023-fortran/input_dl.sh" \
+ -H "From: anson.mansfield@gmail.com" \
  -H "Cookie: session=${session_token}" \
  -o "${output}" \
  -- "${url}"
- 

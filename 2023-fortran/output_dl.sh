@@ -32,6 +32,7 @@ trap 'rm -rf -- "$temp_doc"' EXIT
 echo "retrieving ${url}" >&2
 curl --silent --compressed \
  --user-agent "AJMansfield's AOC Script +mailto:anson.mansfield@gmail.com +https://github.com/AJMansfield/aoc/blob/master/2023-fortran/output_dl.sh" \
+ -H "From: anson.mansfield@gmail.com" \
  -H "Cookie: session=${session_token}" \
  -o "${temp_doc}" \
  -- "${url}" \
