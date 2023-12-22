@@ -6,6 +6,8 @@ program springs
   integer, parameter :: unfold_by = 5
   integer, parameter :: Kstat = 1, Kseg = 1, Kres=8
 
+  integer(Kres), parameter :: CACHE_MISS = -1_Kres
+
   integer(Kstat), parameter :: BROKE = 5, MAYBE = 6, FIXED = 7
 
   integer(Kres) :: res1, res2
@@ -17,8 +19,8 @@ program springs
 main: block
   integer :: h
   integer, dimension(max_h) :: n, w
-  integer(Kseg), dimension(max_n, max_h), target :: segments
-  integer(Kstat), dimension(max_w, max_h), target :: status
+  integer(Kseg), dimension(max_n, max_h) :: segments
+  integer(Kstat), dimension(max_w, max_h) :: status
   
   h = -1
   w = -1 ! debug sentinels -- should never see a negative anywhere else
@@ -76,8 +78,8 @@ part1: block
 
 end block part1
 part2: block
-  integer(Kseg), dimension(max_n*unfold_by), target :: big_segment
-  integer(Kstat), dimension((max_w+1)*unfold_by-1), target :: big_status
+  integer(Kseg), dimension(max_n*unfold_by) :: big_segment
+  integer(Kstat), dimension((max_w+1)*unfold_by-1) :: big_status
 
   integer :: i, j, lb, ub, big_w, big_n
 
@@ -103,7 +105,7 @@ part2: block
     
     res2 = res2 + number_of_matches(big_status(:big_w), big_segment(:big_n))
     
-    write(0, '("i: " I4 " r:" I20)') i, res2
+    ! write(0, '("i: " I4 " r:" I14)') i, res2
 
   end do
 
@@ -136,18 +138,30 @@ end block main
 
 contains
 
-recursive function number_of_matches(status, segments) result(num)
-  integer(Kstat), dimension(:), intent(in), pointer :: status
-  integer(Kseg), dimension(:), intent(in), pointer :: segments
+function number_of_matches(status, segments) result(num)
+  integer(Kstat), dimension(:), intent(in) :: status
+  integer(Kseg), dimension(:), intent(in) :: segments
+  
+  integer(Kres) :: num
+
+  integer(Kres), dimension(size(status),size(segments)), target :: cache_backing
+  integer(Kres), dimension(:,:), pointer :: cache
+  cache => cache_backing
+
+  call clear_cache(cache)
+
+  num = number_of_matches_anywhere(status, segments, cache)
+
+end function number_of_matches
+
+recursive function number_of_matches_anywhere(status, segments, cache) result(num)
+  integer(Kstat), dimension(:), intent(in) :: status
+  integer(Kseg), dimension(:), intent(in) :: segments
+  integer(Kres), dimension(:,:), intent(inout), pointer :: cache
   integer(Kres) :: num
   integer(Kres) :: n
 
   integer :: i, ub
-
-  
-  ! write(0, '("begin number_of_matches()")') 
-  ! write(0, '("S= " *(I3))') status
-  ! write(0, '("s= " *(I3))') segments
 
   if (size(segments) == 0) then
     if (all(status >= MAYBE)) then
@@ -157,32 +171,31 @@ recursive function number_of_matches(status, segments) result(num)
       num = 0
       return ! no more segments to lay out, but there is an obligate BROKE after this point
     end if
-  end if
+  end if  
   
   ub = size(status) - (sum(segments) + size(segments) - 2) ! stop searching once we pass the minimum compact length
 
-  ! write(0, '("i= " I0 ", " I0)') 1, ub
   num = 0
   do i = 1, ub
-    n = number_of_matches_here(status(i:), segments)
-    ! write(0, '("n[" I1 "]= " I0)') i, n
+    n = number_of_matches_here(status(i:), segments, cache)
     num = num + n
     if (status(i) <= BROKE) exit
   end do
 
-  ! write(0, '("end number_of_matches() -> " I0)') num
-  
-end function number_of_matches
+end function number_of_matches_anywhere
 
-recursive function number_of_matches_here(status, segments) result(num)
-  integer(Kstat), dimension(:), intent(in), pointer :: status
-  integer(Kseg), dimension(:), intent(in), pointer :: segments
+recursive function number_of_matches_here(status, segments, cache) result(num)
+  integer(Kstat), dimension(:), intent(in) :: status
+  integer(Kseg), dimension(:), intent(in) :: segments
+  integer(Kres), dimension(:,:), intent(inout), pointer :: cache
   integer(Kres) :: num
 
   integer :: seg
   integer :: lb
+  
+  call read_cache(status, segments, cache, num)
+  if (num /= CACHE_MISS) return ! caching makes this O(good) instead of O(terrible)
 
-  ! write(0, '("@s= " I0)') size(segments)
 
   seg = segments(1) ! try to lay out this next segment at the current point
 
@@ -201,17 +214,42 @@ recursive function number_of_matches_here(status, segments) result(num)
 
   lb = seg + 2
   
-  num = number_of_matches(status(lb:), segments(2:))
+  num = number_of_matches_anywhere(status(lb:), segments(2:), cache)
+  
+  call write_cache(status, segments, cache, num)
   ! write(0, '("n: (rec)" I0)') num
 end function number_of_matches_here
 
-function cache_key(status, segments) result(k)
-  integer(Kstat), dimension(:), intent(in), pointer :: status
-  integer(Kseg), dimension(:), intent(in), pointer :: segments
-  integer(8) :: k
+pure subroutine read_cache(status, segments, cache, val)
+  integer(Kstat), dimension(:), intent(in) :: status
+  integer(Kseg), dimension(:), intent(in) :: segments
+  integer(Kres), dimension(:,:), intent(inout), pointer :: cache
+  integer(Kres), intent(out) :: val
 
-  k = loc(status)
+  if (associated(cache)) then
+    val = cache(size(status),size(segments))
+  else
+    val = CACHE_MISS
+  end if
+end subroutine
 
-end function
+pure subroutine write_cache(status, segments, cache, val)
+  integer(Kstat), dimension(:), intent(in) :: status
+  integer(Kseg), dimension(:), intent(in) :: segments
+  integer(Kres), dimension(:,:), intent(inout), pointer :: cache
+  integer(Kres), intent(in) :: val
+
+  if (associated(cache)) then
+    cache(size(status),size(segments)) = val
+  end if
+end subroutine
+
+pure subroutine clear_cache(cache)
+  integer(Kres), dimension(:,:), intent(inout), pointer :: cache
+
+  if (associated(cache)) then
+    cache(:,:) = CACHE_MISS
+  end if
+end subroutine
   
 end program springs
