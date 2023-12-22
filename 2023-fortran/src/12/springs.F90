@@ -122,7 +122,7 @@ function number_of_matches(status, segments) result(num)
   
   integer(Kres) :: num
 
-  integer(Kres), dimension(size(status),size(segments)), target :: cache_mem
+  integer(Kres), dimension(0:size(status),0:size(segments)), target :: cache_mem
   integer(Kres), dimension(:,:), pointer :: cache
   cache => cache_mem
 
@@ -139,6 +139,9 @@ recursive function number_of_matches_anywhere(status, segments, cache) result(nu
   integer(Kres) :: num
 
   integer :: i, ub
+
+  call read_cache(status, segments, cache, num)
+  if (num /= CACHE_MISS) return ! caching makes this O(good) instead of O(terrible)
 
   if (size(segments) == 0) then
     if (all(status >= MAYBE)) then
@@ -158,6 +161,7 @@ recursive function number_of_matches_anywhere(status, segments, cache) result(nu
     if (status(i) <= BROKE) exit
   end do
 
+  call write_cache(status, segments, cache, num)
 end function number_of_matches_anywhere
 
 recursive function number_of_matches_here(status, segments, cache) result(num)
@@ -168,10 +172,6 @@ recursive function number_of_matches_here(status, segments, cache) result(num)
 
   integer :: seg
   
-  call read_cache(status, segments, cache, num)
-  if (num /= CACHE_MISS) return ! caching makes this O(good) instead of O(terrible)
-
-
   seg = segments(1) ! try to lay out this next segment at the current point
 
   if (status(seg+1) == BROKE) then
@@ -188,9 +188,6 @@ recursive function number_of_matches_here(status, segments, cache) result(num)
   ! therefore, we just need to truncate and search again
 
   num = number_of_matches_anywhere(status(seg+2:), segments(2:), cache)
-  
-  call write_cache(status, segments, cache, num)
-
 end function number_of_matches_here
 
 pure subroutine read_cache(status, segments, cache, val)
