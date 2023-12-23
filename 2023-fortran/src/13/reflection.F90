@@ -14,6 +14,7 @@ block
 
   integer :: n, i, a, b, c, d
   integer :: rec_num
+  integer :: num_matches
   rec_num = 0
 
   last_record = .false.
@@ -35,6 +36,8 @@ block
     ! 5               d      c   c       ab 
     ! 6                   d   d   d  cd  cd 
 
+    num_matches = 0
+
     n = size(arr,2)
     do i = -n+2, n-2, 2
       a = 1 + max(i, 0)
@@ -45,11 +48,22 @@ block
       ! write(0, '("i: " I2 ", regions " I0 ":" I0, ", " I0 ":" I0)') i,a,b,c,d
       ! call print_char_mat('("At[:" I2 "," I2 "]=" *(A1))', arr(:,a:b))
       ! call print_char_mat('("Af[:" I2 "," I2 "]=" *(A1))', hflip(arr(:,c:d)))
+      block
+        logical, dimension(size(arr,1),a:b) :: match
+        match(:,a:b) = arr(:,a:b) == hflip(arr(:,c:d))
 
-      if (all(arr(:,a:b) == hflip(arr(:,c:d)))) then
-        write(0, '("hmatch! " SP I0)') 100*b
-        res1 = res1 + 100*b
-      end if
+        if (all(match)) then
+          write(0, '("match! h/p " SP I0)') 100*b
+          res1 = res1 + 100*b
+          num_matches = num_matches + 1
+        end if
+
+        if (count(.not. match) == 1) then
+          write(0, '("match! h/s " SP I0)') 100*b
+          res2 = res2 + 100*b
+          num_matches = num_matches + 1
+        end if
+      end block
     end do
 
     n = size(arr,1)
@@ -63,12 +77,29 @@ block
       ! call print_char_mat('("At[:" I2 "," I2 "]=" *(A1))', arr(a:b,:))
       ! call print_char_mat('("Af[:" I2 "," I2 "]=" *(A1))', vflip(arr(c:d,:)))
 
-      if (all(arr(a:b,:) == vflip(arr(c:d,:)))) then
-        write(0, '("vmatch! " SP I0)') b
-        res1 = res1 + b
-      end if
+      block
+        logical, dimension(a:b, size(arr,2)) :: match
+        match(a:b,:) = arr(a:b,:) == vflip(arr(c:d,:))
+
+        if (all(match)) then
+          write(0, '("match! v/p " SP I0)') b
+          res1 = res1 + b
+          num_matches = num_matches + 1
+        end if
+
+        if (count(.not. match) == 1) then
+          write(0, '("match! v/s " SP I0)') b
+          res2 = res2 + b
+          num_matches = num_matches + 1
+        end if
+      end block
     end do
 
+    if (num_matches /= 2) then
+      write(0, '("ERROR: Too Many Matches")')
+      call print_char_mat('("A[:" I2 "," I2 "]=" *(A1))', arr)
+      call exit(1)
+    end if
   end do
 
 
