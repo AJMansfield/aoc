@@ -88,7 +88,7 @@ subroutine scan_for_hmirror(arr, mul, res)
     b = ceil_div(a+d, 2)-1
     c = ((a + d) / 2) + 1
 
-    select case (count(arr(:,a:b) /= hflip(arr(:,c:d))))
+    select case (count(arr(:,a:b) /= arr(:,d:c:-1)))
     case (0)
       res(1) = mul*b
     case (1)
@@ -96,6 +96,12 @@ subroutine scan_for_hmirror(arr, mul, res)
     end select
   end do
 end subroutine scan_for_hmirror
+
+pure elemental function ceil_div(x, y) result(q)
+  integer, intent(in) :: x, y
+  integer :: q
+  q = (x + y - 1) / y
+end function
 
 subroutine read_input_block(buf, arr, iostat)
   character(*), target, intent(out) :: buf
@@ -127,16 +133,5 @@ subroutine print_char_mat(linefmt, mat)
   end do
 end subroutine print_char_mat
 
-pure function hflip(mat)
-  character, dimension(:,:), intent(in) :: mat
-  character, dimension(lbound(mat,1):ubound(mat,1),lbound(mat,2):ubound(mat,2)) :: hflip
-  hflip = mat(:,ubound(mat,2):lbound(mat,2):-1)
-end function
-
-pure elemental function ceil_div(x, y) result(q)
-  integer, intent(in) :: x, y
-  integer :: q
-  q = (x + y - 1) / y
-end function
 
 end program reflection
