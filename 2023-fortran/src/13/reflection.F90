@@ -92,12 +92,13 @@ subroutine scan_for_hmirror(arr, res1, res2)
     d = n + min(i, 0)
     b = ceil_div(a+d, 2)-1
     c = ((a + d) / 2) + 1
-    
-    if (all(arr(:,a:b) == hflip(arr(:,c:d)))) then
+
+    select case (count(arr(:,a:b) /= hflip(arr(:,c:d))))
+    case (0)
       res1 = res1 + b
-    else if (count(arr(:,a:b) /= hflip(arr(:,c:d))) == 1) then
+    case (1)
       res2 = res2 + b
-    end if
+    end select
   end do
 end subroutine scan_for_hmirror
 
