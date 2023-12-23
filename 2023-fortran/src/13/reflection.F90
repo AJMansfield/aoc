@@ -1,14 +1,9 @@
 program reflection
   use iso_c_binding
   implicit none
-  
+
 #if defined PERF_TIME
   real :: t1, t2, t3, t4, t_temp, t_input_begin, t_input_end, d_input
-#endif
-
-  integer :: res1, res2
-  
-#if defined PERF_TIME
   call cpu_time(t1)
   d_input = 0
   t_input_begin = 0
@@ -16,18 +11,22 @@ program reflection
   call cpu_time(t2)
 #endif
 
-  res1 = 0
-  res2 = 0
-
 block
+  integer :: res1, res2
+
   integer :: ios
   character(4096), target :: buf
   character, dimension(:,:), pointer :: arr
 
-  integer :: n, i, a, b, c, d
+  integer :: r1, r2
+
+  res1 = 0
+  res2 = 0
 
   ios = 0
   do while (ios == 0)
+    r1 = 0
+    r2 = 0
 
 #if defined PERF_TIME
   call cpu_time(t_temp) ! accumulate the time spent working on reading the input so it can be subtracted later
@@ -39,55 +38,17 @@ block
   call cpu_time(t_input_end)
 #endif
 
-    ! iterating in this pattern (but skipping every other)
-    ! i=[-4  -3  -2  -1   0   1   2   3   4]
-    ! 1  ab  ab  a   a   a                  
-    ! 2  cd       b   b      a              
-    ! 3      cd  c        b   b  a          
-    ! 4           d  c   c        b  ab     
-    ! 5               d      c   c       ab 
-    ! 6                   d   d   d  cd  cd 
 
-    n = size(arr,2)
-    do i = -n+2, n-2, 2
-      a = 1 + max(i, 0)
-      d = n + min(i, 0)
-      b = ceil_div(a+d, 2)-1
-      c = ((a + d) / 2) + 1
-      
-      block
-        logical, dimension(size(arr,1),a:b) :: match
-        match(:,a:b) = arr(:,a:b) == hflip(arr(:,c:d))
+    call scan_for_hmirror(arr, r1, r2)
 
-        if (all(match)) then
-          res1 = res1 + 100*b
-        else if (count(.not. match) == 1) then
-          res2 = res2 + 100*b
-        end if
-      end block
-    end do
+    res1 = res1 + r1 * 100
+    res2 = res2 + r2 * 100
 
-    n = size(arr,1)
-    do i = -n+2, n-2, 2
-      a = 1 + max(i, 0)
-      d = n + min(i, 0)
-      b = ceil_div(a+d, 2)-1
-      c = ((a + d) / 2) + 1
-
-      block
-        logical, dimension(a:b, size(arr,2)) :: match
-        match(a:b,:) = arr(a:b,:) == vflip(arr(c:d,:))
-
-        if (all(match)) then
-          res1 = res1 + b
-        else if (count(.not. match) == 1) then
-          res2 = res2 + b
-        end if
-      end block
-    end do
+    ! if we found both the standard and the smudged, skip searching the transpose
+    if (r1 == 0 .or. r2 == 0) call scan_for_hmirror(transpose(arr), res1, res2)
+    ! if (r1 == 0 .or. r2 == 0) call scan_for_vmirror(arr, res1, res2)
   end do
 
-end block
 
 #if defined PERF_TIME
   call cpu_time(t3)
@@ -95,6 +56,8 @@ end block
 
   write(*, '("Part 1: " I0)') res1
   write(*, '("Part 2: " I0)') res2
+
+end block
 
 #if defined PERF_TIME
   call cpu_time(t4)
@@ -107,6 +70,60 @@ end block
 #endif
 
 contains
+
+subroutine scan_for_hmirror(arr, res1, res2)
+  character, dimension(:,:), intent(in) :: arr
+  integer, intent(inout) ::  res1, res2
+  
+  integer :: n, i, a, b, c, d
+
+  ! iterating in this pattern (but skipping every other)
+  ! i=[-4  -3  -2  -1   0   1   2   3   4]
+  ! 1  ab  ab  a   a   a                  
+  ! 2  cd       b   b      a              
+  ! 3      cd  c        b   b  a          
+  ! 4           d  c   c        b  ab     
+  ! 5               d      c   c       ab 
+  ! 6                   d   d   d  cd  cd 
+
+  n = size(arr,2)
+  do i = -n+2, n-2, 2
+    a = 1 + max(i, 0)
+    d = n + min(i, 0)
+    b = ceil_div(a+d, 2)-1
+    c = ((a + d) / 2) + 1
+    
+    if (all(arr(:,a:b) == hflip(arr(:,c:d)))) then
+      res1 = res1 + b
+    else if (count(arr(:,a:b) /= hflip(arr(:,c:d))) == 1) then
+      res2 = res2 + b
+    end if
+  end do
+end subroutine scan_for_hmirror
+
+
+subroutine scan_for_vmirror(arr, res1, res2)
+  ! turns out, scanning the array in this order is actually slower than just transposing the array once
+  ! use scan_for_hmirror(transpose(arr), res1, res2) instead
+  character, dimension(:,:), intent(in) :: arr
+  integer, intent(inout) ::  res1, res2
+  
+  integer :: n, i, a, b, c, d
+
+  n = size(arr,1)
+  do i = -n+2, n-2, 2
+    a = 1 + max(i, 0)
+    d = n + min(i, 0)
+    b = ceil_div(a+d, 2)-1
+    c = ((a + d) / 2) + 1
+
+    if (all(arr(a:b,:) == vflip(arr(c:d,:)))) then
+      res1 = res1 + b
+    else if (count(arr(a:b,:) /= vflip(arr(c:d,:))) == 1) then
+      res2 = res2 + b
+    end if
+  end do
+end subroutine
 
 subroutine read_input_block(buf, arr, iostat)
   character(*), target, intent(out) :: buf
