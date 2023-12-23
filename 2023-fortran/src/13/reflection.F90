@@ -12,41 +12,33 @@ program reflection
 #endif
 
 block
-  integer :: res1, res2
+  integer, dimension(2) :: res
 
   integer :: ios
   character(4096), target :: buf
   character, dimension(:,:), pointer :: arr
 
-  integer :: r1, r2
-
-  res1 = 0
-  res2 = 0
+  integer, dimension(2) :: r
 
   ios = 0
   do while (ios == 0)
-    r1 = 0
-    r2 = 0
 
 #if defined PERF_TIME
-  call cpu_time(t_temp) ! accumulate the time spent working on reading the input so it can be subtracted later
-  d_input = d_input + (t_input_end - t_input_begin)
-  t_input_begin = t_temp
+    call cpu_time(t_temp) ! accumulate the time spent working on reading the input so it can be subtracted later
+    d_input = d_input + (t_input_end - t_input_begin)
+    t_input_begin = t_temp
 #endif
+
     call read_input_block(buf, arr, iostat=ios)
+
 #if defined PERF_TIME
-  call cpu_time(t_input_end)
+    call cpu_time(t_input_end)
 #endif
 
-
-    call scan_for_hmirror(arr, r1, r2)
-
-    res1 = res1 + r1 * 100
-    res2 = res2 + r2 * 100
-
-    ! if we found both the standard and the smudged, skip searching the transpose
-    if (r1 == 0 .or. r2 == 0) call scan_for_hmirror(transpose(arr), res1, res2)
-    ! if (r1 == 0 .or. r2 == 0) call scan_for_vmirror(arr, res1, res2)
+    r = 0
+    call scan_for_hmirror(arr, 100, r)
+    call scan_for_hmirror(transpose(arr), 1, r)
+    res = res + r
   end do
 
 
@@ -54,8 +46,8 @@ block
   call cpu_time(t3)
 #endif
 
-  write(*, '("Part 1: " I0)') res1
-  write(*, '("Part 2: " I0)') res2
+  write(*, '("Part 1: " I0)') res(1)
+  write(*, '("Part 2: " I0)') res(2)
 
 end block
 
@@ -71,9 +63,10 @@ end block
 
 contains
 
-subroutine scan_for_hmirror(arr, res1, res2)
+subroutine scan_for_hmirror(arr, mul, res)
   character, dimension(:,:), intent(in) :: arr
-  integer, intent(inout) ::  res1, res2
+  integer, intent(in) ::  mul
+  integer, dimension(2), intent(inout) ::  res
   
   integer :: n, i, a, b, c, d
 
@@ -88,6 +81,8 @@ subroutine scan_for_hmirror(arr, res1, res2)
 
   n = size(arr,2)
   do i = -n+2, n-2, 2
+    if (all(res /= 0)) exit
+
     a = 1 + max(i, 0)
     d = n + min(i, 0)
     b = ceil_div(a+d, 2)-1
@@ -95,36 +90,12 @@ subroutine scan_for_hmirror(arr, res1, res2)
 
     select case (count(arr(:,a:b) /= hflip(arr(:,c:d))))
     case (0)
-      res1 = res1 + b
+      res(1) = mul*b
     case (1)
-      res2 = res2 + b
+      res(2) = mul*b
     end select
   end do
 end subroutine scan_for_hmirror
-
-
-subroutine scan_for_vmirror(arr, res1, res2)
-  ! turns out, scanning the array in this order is actually slower than just transposing the array once
-  ! use scan_for_hmirror(transpose(arr), res1, res2) instead
-  character, dimension(:,:), intent(in) :: arr
-  integer, intent(inout) ::  res1, res2
-  
-  integer :: n, i, a, b, c, d
-
-  n = size(arr,1)
-  do i = -n+2, n-2, 2
-    a = 1 + max(i, 0)
-    d = n + min(i, 0)
-    b = ceil_div(a+d, 2)-1
-    c = ((a + d) / 2) + 1
-
-    if (all(arr(a:b,:) == vflip(arr(c:d,:)))) then
-      res1 = res1 + b
-    else if (count(arr(a:b,:) /= vflip(arr(c:d,:))) == 1) then
-      res2 = res2 + b
-    end if
-  end do
-end subroutine
 
 subroutine read_input_block(buf, arr, iostat)
   character(*), target, intent(out) :: buf
@@ -156,16 +127,12 @@ subroutine print_char_mat(linefmt, mat)
   end do
 end subroutine print_char_mat
 
-pure function vflip(mat)
-  character, dimension(:,:), intent(in) :: mat
-  character, dimension(lbound(mat,1):ubound(mat,1),lbound(mat,2):ubound(mat,2)) :: vflip
-  vflip = mat(ubound(mat,1):lbound(mat,1):-1,:)
-end function
 pure function hflip(mat)
   character, dimension(:,:), intent(in) :: mat
   character, dimension(lbound(mat,1):ubound(mat,1),lbound(mat,2):ubound(mat,2)) :: hflip
   hflip = mat(:,ubound(mat,2):lbound(mat,2):-1)
 end function
+
 pure elemental function ceil_div(x, y) result(q)
   integer, intent(in) :: x, y
   integer :: q
