@@ -12,7 +12,7 @@ NAME := aoc
 
 # Configuration settings
 FC := gfortran
-override FFLAGS += -std=gnu -Ofast
+override FFLAGS += -std=gnu -Ofast -flto
 # run with `make target FFLAGS=-DPERF_TIME` to get perf info
 RM := rm -f
 
