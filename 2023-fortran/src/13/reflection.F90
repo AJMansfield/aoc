@@ -13,15 +13,12 @@ block
   character, dimension(:,:), pointer :: arr
 
   integer :: n, i, a, b, c, d
-  integer :: num_matches
 
   last_record = .false.
 
   do while (.not. last_record)
     call read_input_block(buf, arr, iostat=ios)
     if (ios /= 0) last_record = .true.
-
-    ! call print_char_mat('("A[:" I2 "," I2 "]=" *(A1))', arr)
 
     ! iterating in this pattern:
     ! i=[-4  -3  -2  -1   0   1   2   3   4]
@@ -31,8 +28,6 @@ block
     ! 4           d  c   c        b  ab     
     ! 5               d      c   c       ab 
     ! 6                   d   d   d  cd  cd 
-
-    num_matches = 0
 
     n = size(arr,2)
     do i = -n+2, n-2, 2
@@ -47,10 +42,8 @@ block
 
         if (all(match)) then
           res1 = res1 + 100*b
-          num_matches = num_matches + 1
         else if (count(.not. match) == 1) then
           res2 = res2 + 100*b
-          num_matches = num_matches + 1
         end if
       end block
     end do
@@ -68,19 +61,11 @@ block
 
         if (all(match)) then
           res1 = res1 + b
-          num_matches = num_matches + 1
         else if (count(.not. match) == 1) then
           res2 = res2 + b
-          num_matches = num_matches + 1
         end if
       end block
     end do
-
-    if (num_matches /= 2) then
-      write(0, '("ERROR: Too Many Matches")')
-      call print_char_mat('("A[:" I2 "," I2 "]=" *(A1))', arr)
-      call exit(1)
-    end if
   end do
 
 
