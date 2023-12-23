@@ -36,8 +36,9 @@ block
 #endif
 
     r = 0
-    call scan_for_hmirror(arr, 100, r)
-    call scan_for_hmirror(transpose(arr), 1, r)
+    call scan_for_hmirror(arr, r)
+    r = r*100
+    call scan_for_hmirror(transpose(arr), r)
     res = res + r
   end do
 
@@ -63,9 +64,8 @@ end block
 
 contains
 
-subroutine scan_for_hmirror(arr, mul, res)
+subroutine scan_for_hmirror(arr, res)
   character, dimension(:,:), intent(in) :: arr
-  integer, intent(in) ::  mul
   integer, dimension(2), intent(inout) ::  res
   
   integer :: n, i, a, b, c, d
@@ -90,9 +90,9 @@ subroutine scan_for_hmirror(arr, mul, res)
 
     select case (count(arr(:,a:b) /= arr(:,d:c:-1)))
     case (0)
-      res(1) = mul*b
+      res(1) = b
     case (1)
-      res(2) = mul*b
+      res(2) = b
     end select
   end do
 end subroutine scan_for_hmirror
