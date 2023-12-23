@@ -2,25 +2,44 @@ program reflection
   use iso_c_binding
   implicit none
   
+#if defined PERF_TIME
+  real :: t1, t2, t3, t4, t_temp, t_input_begin, t_input_end, d_input
+#endif
+
   integer :: res1, res2
+  
+#if defined PERF_TIME
+  call cpu_time(t1)
+  d_input = 0
+  t_input_begin = 0
+  t_input_end = 0
+  call cpu_time(t2)
+#endif
+
   res1 = 0
   res2 = 0
 
 block
   integer :: ios
-  logical :: last_record
   character(4096), target :: buf
   character, dimension(:,:), pointer :: arr
 
   integer :: n, i, a, b, c, d
 
-  last_record = .false.
+  ios = 0
+  do while (ios == 0)
 
-  do while (.not. last_record)
+#if defined PERF_TIME
+  call cpu_time(t_temp) ! accumulate the time spent working on reading the input so it can be subtracted later
+  d_input = d_input + (t_input_end - t_input_begin)
+  t_input_begin = t_temp
+#endif
     call read_input_block(buf, arr, iostat=ios)
-    if (ios /= 0) last_record = .true.
+#if defined PERF_TIME
+  call cpu_time(t_input_end)
+#endif
 
-    ! iterating in this pattern:
+    ! iterating in this pattern (but skipping every other)
     ! i=[-4  -3  -2  -1   0   1   2   3   4]
     ! 1  ab  ab  a   a   a                  
     ! 2  cd       b   b      a              
@@ -68,11 +87,24 @@ block
     end do
   end do
 
+end block
 
+#if defined PERF_TIME
+  call cpu_time(t3)
+#endif
 
   write(*, '("Part 1: " I0)') res1
   write(*, '("Part 2: " I0)') res2
-end block
+
+#if defined PERF_TIME
+  call cpu_time(t4)
+  d_input = d_input + (t_input_end - t_input_begin)
+
+  write(0,'("read : " F10.6)') d_input
+  write(0,'("work : " F10.6)') t3 - t2 - d_input
+  write(0,'("write: " F10.6)') t4 - t3
+  write(0,'("total: " F10.6)') t4 - t1
+#endif
 
 contains
 
