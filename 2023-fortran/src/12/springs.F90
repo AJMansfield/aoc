@@ -27,6 +27,9 @@ main: block
   ! segments = -1
   ! status = -1
 
+#if defined PERF_TIME
+  call cpu_time(t1)
+#endif
 input: block
 
   integer :: ios
