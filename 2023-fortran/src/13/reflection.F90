@@ -13,17 +13,13 @@ block
   character, dimension(:,:), pointer :: arr
 
   integer :: n, i, a, b, c, d
-  integer :: rec_num
   integer :: num_matches
-  rec_num = 0
 
   last_record = .false.
 
   do while (.not. last_record)
     call read_input_block(buf, arr, iostat=ios)
     if (ios /= 0) last_record = .true.
-    rec_num = rec_num + 1
-    write(0, '("Record " I0)') rec_num
 
     ! call print_char_mat('("A[:" I2 "," I2 "]=" *(A1))', arr)
 
@@ -45,19 +41,14 @@ block
       b = ceil_div(a+d, 2)-1
       c = ((a + d) / 2) + 1
       
-      ! write(0, '("i: " I2 ", regions " I0 ":" I0, ", " I0 ":" I0)') i,a,b,c,d
-      ! call print_char_mat('("At[:" I2 "," I2 "]=" *(A1))', arr(:,a:b))
-      ! call print_char_mat('("Af[:" I2 "," I2 "]=" *(A1))', hflip(arr(:,c:d)))
       block
         logical, dimension(size(arr,1),a:b) :: match
         match(:,a:b) = arr(:,a:b) == hflip(arr(:,c:d))
 
         if (all(match)) then
-          write(0, '("match! h/p " SP I0)') 100*b
           res1 = res1 + 100*b
           num_matches = num_matches + 1
         else if (count(.not. match) == 1) then
-          write(0, '("match! h/s " SP I0)') 100*b
           res2 = res2 + 100*b
           num_matches = num_matches + 1
         end if
@@ -70,21 +61,15 @@ block
       d = n + min(i, 0)
       b = ceil_div(a+d, 2)-1
       c = ((a + d) / 2) + 1
-      
-      ! write(0, '("i: " I2 ", regions " I0 ":" I0, ", " I0 ":" I0)') i,a,b,c,d
-      ! call print_char_mat('("At[:" I2 "," I2 "]=" *(A1))', arr(a:b,:))
-      ! call print_char_mat('("Af[:" I2 "," I2 "]=" *(A1))', vflip(arr(c:d,:)))
 
       block
         logical, dimension(a:b, size(arr,2)) :: match
         match(a:b,:) = arr(a:b,:) == vflip(arr(c:d,:))
 
         if (all(match)) then
-          write(0, '("match! v/p " SP I0)') b
           res1 = res1 + b
           num_matches = num_matches + 1
         else if (count(.not. match) == 1) then
-          write(0, '("match! v/s " SP I0)') b
           res2 = res2 + b
           num_matches = num_matches + 1
         end if
