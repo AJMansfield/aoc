@@ -56,9 +56,7 @@ block
           write(0, '("match! h/p " SP I0)') 100*b
           res1 = res1 + 100*b
           num_matches = num_matches + 1
-        end if
-
-        if (count(.not. match) == 1) then
+        else if (count(.not. match) == 1) then
           write(0, '("match! h/s " SP I0)') 100*b
           res2 = res2 + 100*b
           num_matches = num_matches + 1
@@ -85,9 +83,7 @@ block
           write(0, '("match! v/p " SP I0)') b
           res1 = res1 + b
           num_matches = num_matches + 1
-        end if
-
-        if (count(.not. match) == 1) then
+        else if (count(.not. match) == 1) then
           write(0, '("match! v/s " SP I0)') b
           res2 = res2 + b
           num_matches = num_matches + 1
