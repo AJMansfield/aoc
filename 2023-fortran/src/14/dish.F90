@@ -2,35 +2,53 @@ program reflection
   use iso_c_binding
   implicit none
   
+block
+  integer :: ios
+  character(16384), target :: buf
+  character, dimension(:,:), pointer :: arr
   integer, dimension(2) :: res
 
-block
-
-  integer :: ios
-  character(4096), target :: buf
-  character, dimension(:,:), pointer :: arr
-  integer :: i,j
-
   call read_input_block(buf, arr, iostat=ios)
-  call print_char_mat('("A(:" I0 "," I3 ")=" *(A))', arr)
-  do j = lbound(arr,2),ubound(arr,2)
-    arr(::-1,j) = slide_right(arr(::-1,j))
-  end do
-  call print_char_mat('("B(:" I0 "," I3 ")=" *(A))', arr)
+  call main(arr, res)
 
-  ! sum( (/(i, i=)/))
+  write(*, '("Part 1: " I0)') res(1)
+  write(*, '("Part 2: " I0)') res(2)
 end block
 
 contains
 
-pure function slide_right(initial) result(row)
-  character, dimension(:), intent(in) :: initial
-  character, dimension(lbound(initial,1):ubound(initial,1)) :: row
+subroutine main(arr, res)
+  character, dimension(:,:), intent(inout) :: arr
+  integer, dimension(2), intent(out) :: res
+  integer :: n, m
+  integer :: i, j
+  n = size(arr, 1)
+  m = size(arr, 2)
+
+  call print_char_mat('("A(:" I0 "," I3 ")=" *(A))', arr)
+
+  !! Slide East:
+  ! do j = 1,m
+  !   call slide_left(arr(n:1:-1,j))
+  ! end do
+
+  !! Slide North:
+  do i = 1,n
+    call slide_left(arr(i,:))
+  end do
+
+  call print_char_mat('("B(:" I0 "," I3 ")=" *(A))', arr)
+
+  res(1) = sum( spread((/(j, j=m,1,-1)/), 1, n), mask=(arr=='O'))
+
+end subroutine main
+
+pure subroutine slide_left(row)
+  character, dimension(:), intent(inout) :: row
   integer :: pos_start, pos_end
 
-  row = initial
-  pos_end = lbound(row,1)
-  do pos_start = lbound(row,1),ubound(row,1)
+  pos_end = 1
+  do pos_start = 1,size(row,1)
     select case (row(pos_start))
     case ('O')
       row(pos_start) = '.'
@@ -41,10 +59,11 @@ pure function slide_right(initial) result(row)
     case ('.')
       ! no-op
     case default
-      !$ ASSUME FALSE
+      ! $ ASSUME FALSE
+      row(pos_start) = '!'
     end select
   end do
-end function slide_right
+end subroutine slide_left
 
 subroutine read_input_block(buf, arr, iostat)
   character(*), target, intent(out) :: buf
