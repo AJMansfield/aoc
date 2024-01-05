@@ -58,11 +58,11 @@ subroutine main(arr, res)
         ! write(0,*) "found repeat!"
         finish_mode = .true.
 
-        write(0,'("iter " I0)') iter
+        ! write(0,'("iter " I0)') iter
         ! write(0,'("pd " I0)') cycle_len
         !> increment iter by the largest multiple of the periodicity less than the remaining number of cycles
         iter = iter + (number_of_cycles - iter) / cycle_len * cycle_len
-        write(0,'("iter " I0)') iter
+        ! write(0,'("iter " I0)') iter
       end if
 
       !> push back into periodicity detection array
