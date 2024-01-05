@@ -2,7 +2,7 @@ program reflection
   use iso_c_binding
   implicit none
   
-  integer, parameter :: cycle_count = 1000000000
+  integer, parameter :: number_of_cycles = 1000000000
   integer, parameter :: hi_comp = 5040
 
 block
@@ -23,15 +23,14 @@ contains
 subroutine main(arr, res)
   character, dimension(:,:), intent(inout) :: arr
   integer, dimension(2), intent(out) :: res
-  integer :: iter
+  integer :: iter, cycle_len
 
-  character, dimension(size(arr,1),size(arr,2)) :: last_arr
+  integer(kind=8), dimension(32) :: cache
+  integer(kind=8) :: curr_hash
+  logical :: finish_mode
 
-  ! integer(kind=8), dimension(64) :: cache
-  ! integer(kind=8) :: curr_hash
-
-  last_arr = arr
-  ! cache = arr_hash(arr)
+  cache = arr_hash(arr)
+  finish_mode = .false.
 
   ! call print_char_mat('("A(:" I0 "," I3 ")=" *(A))', arr)
   ! prev_arr = arr
@@ -43,17 +42,8 @@ subroutine main(arr, res)
   iter = 1
   
   do 
-    if (mod(iter, hi_comp) == 0) then
+    if (mod(iter, 1000) == 0) then
       write(0,'("iter " I0)') iter
-
-      if (all(arr == last_arr)) then 
-        write(0,'("skip " I0)') (cycle_count - iter) / hi_comp * hi_comp
-        iter = iter + (cycle_count - iter) / hi_comp * hi_comp
-
-        write(0,'("iter " I0)') iter
-      end if
-
-      last_arr = arr
     end if
 
     call slide_north(arr)
@@ -61,13 +51,25 @@ subroutine main(arr, res)
     call slide_south(arr)
     call slide_east(arr)
 
-    ! curr_hash = arr_hash(arr)
-    ! if (any(cache == curr_hash)) then
-    !   write(0,*) "found repeat!"
-    !   ! TODO increment iter by a multiple of the repeat periodicity until it's just at the end
-    ! end if
+    if (.not. finish_mode) then
+      curr_hash = arr_hash(arr)
+      cycle_len = findloc(cache, curr_hash, 1)
+      if (cycle_len > 0) then
+        ! write(0,*) "found repeat!"
+        finish_mode = .true.
 
-    if (iter >= cycle_count) exit
+        write(0,'("iter " I0)') iter
+        ! write(0,'("pd " I0)') cycle_len
+        ! increment iter by the largest multiple of the periodicity less than the remaining number of cycles
+        iter = iter + (number_of_cycles - iter) / cycle_len * cycle_len
+        write(0,'("iter " I0)') iter
+      end if
+
+      ! push back into periodicity detection array
+      cache = [curr_hash, cache(:size(cache,1)-1)]
+    end if
+
+    if (iter >= number_of_cycles) exit
     iter = iter + 1
   end do
 
