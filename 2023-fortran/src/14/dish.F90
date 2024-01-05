@@ -2,6 +2,9 @@ program reflection
   use iso_c_binding
   implicit none
   
+  integer, parameter :: cycle_count = 1000000000
+  integer, parameter :: hi_comp = 5040
+
 block
   integer :: ios
   character(16384), target :: buf
@@ -20,28 +23,109 @@ contains
 subroutine main(arr, res)
   character, dimension(:,:), intent(inout) :: arr
   integer, dimension(2), intent(out) :: res
-  integer :: n, m
-  integer :: i, j
-  n = size(arr, 1)
-  m = size(arr, 2)
+  integer :: iter
 
-  call print_char_mat('("A(:" I0 "," I3 ")=" *(A))', arr)
+  character, dimension(size(arr,1),size(arr,2)) :: last_arr
 
-  !! Slide East:
-  ! do j = 1,m
-  !   call slide_left(arr(n:1:-1,j))
-  ! end do
+  ! integer(kind=8), dimension(64) :: cache
+  ! integer(kind=8) :: curr_hash
 
-  !! Slide North:
-  do i = 1,n
-    call slide_left(arr(i,:))
+  last_arr = arr
+  ! cache = arr_hash(arr)
+
+  ! call print_char_mat('("A(:" I0 "," I3 ")=" *(A))', arr)
+  ! prev_arr = arr
+
+  call slide_north(arr)
+
+  res(1) = north_load(arr)
+
+  iter = 1
+  
+  do 
+    if (mod(iter, hi_comp) == 0) then
+      write(0,'("iter " I0)') iter
+
+      if (all(arr == last_arr)) then 
+        write(0,'("skip " I0)') (cycle_count - iter) / hi_comp * hi_comp
+        iter = iter + (cycle_count - iter) / hi_comp * hi_comp
+
+        write(0,'("iter " I0)') iter
+      end if
+
+      last_arr = arr
+    end if
+
+    call slide_north(arr)
+    call slide_west(arr)
+    call slide_south(arr)
+    call slide_east(arr)
+
+    ! curr_hash = arr_hash(arr)
+    ! if (any(cache == curr_hash)) then
+    !   write(0,*) "found repeat!"
+    !   ! TODO increment iter by a multiple of the repeat periodicity until it's just at the end
+    ! end if
+
+    if (iter >= cycle_count) exit
+    iter = iter + 1
   end do
 
-  call print_char_mat('("B(:" I0 "," I3 ")=" *(A))', arr)
-
-  res(1) = sum( spread((/(j, j=m,1,-1)/), 1, n), mask=(arr=='O'))
+  res(2) = north_load(arr)
 
 end subroutine main
+
+pure integer(kind=8) function arr_hash(arr)
+  character, dimension(:,:), intent(in) :: arr
+  integer i, j
+  logical mask
+  arr_hash = 0
+  do j = 1,size(arr,2)
+    do i = 1,size(arr,1)
+      mask = arr(i,j)=='O'
+      arr_hash = arr_hash*311 + merge(1,0,mask)
+    end do
+  end do
+end function
+
+pure integer function north_load(arr)
+  character, dimension(:,:), intent(in) :: arr
+  integer :: j
+  north_load = sum( spread((/(j, j=size(arr,2),1,-1)/), 1, size(arr,1)), mask=(arr=='O'))
+end function north_load
+
+pure subroutine slide_north(arr)
+  character, dimension(:,:), intent(inout) :: arr
+  integer :: i
+  do concurrent (i = 1:size(arr,1))
+    call slide_left(arr(i,:))
+  end do
+end subroutine slide_north
+
+pure subroutine slide_south(arr)
+  character, dimension(:,:), intent(inout) :: arr
+  integer :: i
+  do concurrent (i = 1:size(arr,1))
+    call slide_left(arr(i,size(arr,2):1:-1))
+  end do
+end subroutine slide_south
+
+pure subroutine slide_west(arr)
+  character, dimension(:,:), intent(inout) :: arr
+  integer :: j
+  do concurrent (j = 1:size(arr,2))
+    call slide_left(arr(:,j))
+  end do
+end subroutine slide_west
+
+pure subroutine slide_east(arr)
+  character, dimension(:,:), intent(inout) :: arr
+  integer :: j
+  do concurrent (j = 1:size(arr,2))
+    call slide_left(arr(size(arr,1):1:-1,j))
+  end do
+end subroutine slide_east
+
 
 pure subroutine slide_left(row)
   character, dimension(:), intent(inout) :: row
