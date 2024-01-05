@@ -1,4 +1,4 @@
-program reflection
+program dish
   use iso_c_binding
   implicit none
   
@@ -183,4 +183,4 @@ subroutine print_char_mat(linefmt, mat)
   end do
 end subroutine print_char_mat
 
-end program reflection
+end program dish
