@@ -3,7 +3,7 @@ program reflection
   implicit none
   
   integer, parameter :: number_of_cycles = 1000000000
-  integer, parameter :: hi_comp = 5040
+  integer, parameter :: max_period = 17, skip_start = 149, hash_prime = 311
 
 block
   integer :: ios
@@ -25,11 +25,12 @@ subroutine main(arr, res)
   integer, dimension(2), intent(out) :: res
   integer :: iter, cycle_len
 
-  integer(kind=8), dimension(32) :: cache
+  integer(kind=8), dimension(max_period) :: cache
   integer(kind=8) :: curr_hash
-  logical :: finish_mode
+  logical :: start_mode, finish_mode
 
   cache = arr_hash(arr)
+  start_mode = .true.
   finish_mode = .false.
 
   ! call print_char_mat('("A(:" I0 "," I3 ")=" *(A))', arr)
@@ -42,30 +43,31 @@ subroutine main(arr, res)
   iter = 1
   
   do 
-    if (mod(iter, 1000) == 0) then
-      write(0,'("iter " I0)') iter
-    end if
-
     call slide_north(arr)
     call slide_west(arr)
     call slide_south(arr)
     call slide_east(arr)
 
-    if (.not. finish_mode) then
+    if (start_mode) then
+      ! run the first few cycles with no periodicity detection, because the procedure has likely not yet converged into a periodic mode yet anyway
+      if (iter > skip_start) start_mode = .false.
+    else if (finish_mode) then
+      ! run the last few iterations to align with the exact endpoint
+    else
       curr_hash = arr_hash(arr)
       cycle_len = findloc(cache, curr_hash, 1)
       if (cycle_len > 0) then
-        ! write(0,*) "found repeat!"
         finish_mode = .true.
 
-        ! write(0,'("iter " I0)') iter
-        ! write(0,'("pd " I0)') cycle_len
-        !> increment iter by the largest multiple of the periodicity less than the remaining number of cycles
+        ! For finding tuning parameters:
+        !write(0,*) "period: ", cycle_len
+        !write(0,*) "iter: ", iter
+
+        ! increment iter by the largest multiple of the periodicity less than the remaining number of cycles
         iter = iter + (number_of_cycles - iter) / cycle_len * cycle_len
-        ! write(0,'("iter " I0)') iter
       end if
 
-      !> push back into periodicity detection array
+      ! push back into periodicity detection array
       cache = [curr_hash, cache(:size(cache,1)-1)]
     end if
 
@@ -85,7 +87,7 @@ pure integer(kind=8) function arr_hash(arr)
   do j = 1,size(arr,2)
     do i = 1,size(arr,1)
       mask = arr(i,j)=='O'
-      arr_hash = arr_hash*311 + merge(1,0,mask)
+      arr_hash = arr_hash * hash_prime + merge(1,0,mask)
     end do
   end do
 end function
